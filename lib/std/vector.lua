@@ -22,6 +22,16 @@ function Vector:map(func)
     end)
     return new_v
 end
+function Vector:dot(vec)
+    if vec.name~=self.name then
+        error(string.format("%s not wanted type, should be %s",vec.name,self.name))
+    end
+    local res= 0
+    self.keys:each(function (key)
+        res = res+ self[key]*vec[key]
+    end)
+    return res
+end
 function Vector:reduce(func,init_value)
     return self.keys:reduce(function (accumulator,key)
         return func(accumulator,self[key])
@@ -133,6 +143,6 @@ end
 function Vector:__eq(v)
     return self.keys:every(function (key)
         return self[key]==v[key]
-    end)   
+    end)
 end
 return Vector

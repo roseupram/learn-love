@@ -86,7 +86,7 @@ prototype=setmetatable(prototype, {
         local o =setmetatable({},t)
         -- extend from super class
         if not rawget(t,'_extend') then
-            print(t.name,'extend',mt.name)
+            -- print(t.name,'extend',mt.name)
             for func_name, func in pairs(mt) do
                 if func_name:find("__") == 1 then
                     t[func_name] = t[func_name] or mt[func_name]

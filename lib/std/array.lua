@@ -117,7 +117,7 @@ function Array:__tostring()
         local str=string.format("%s",v)
         table.insert(items,str)
     end
-    return string.format("Array( %s )",table.concat(items,", "))
+    return string.format("Array(%s)",table.concat(items,", "))
 end
 function Array:__add(add)
     -- onyly for Array + add, not for add + Array
@@ -200,4 +200,12 @@ function Array:join(seperator)
     seperator=seperator or ', '
     return table.concat(self,seperator)
 end
+
+local function test()
+    local arr=Array{1,2,4}
+    arr:push(23)
+    print(arr)
+    print(arr:max_min())
+end
+-- test()
 return Array

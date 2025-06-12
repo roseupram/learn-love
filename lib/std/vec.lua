@@ -15,9 +15,6 @@ function  Vec2:project(vec)
     return self:dot(vec:normal())
     
 end
-function Vec2:dot(vec)
-    return self.x*vec.x + self.y*vec.y
-end
 function Vec2:set(vec,y)
     if type(y)=="number" then
         local x= vec
@@ -84,4 +81,10 @@ function Vec2:rotate(theta,is_degree)
     local v=Vec2(math.cos(theta),math.sin(theta))
    return v*len
 end
+local function test()
+    local v = Vec2(1,3)
+    local v2 = Vec2(4)
+    print(v:dot(v2))
+end
+-- test()
 return Vec2
