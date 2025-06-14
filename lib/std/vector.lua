@@ -2,6 +2,7 @@ local ptt=require('prototype')
 
 --- prototype of all vector, such as position color 
 ---@class Vector :prototype
+---@field keys Array
 local Vector=ptt{name='Vector'}
 local Array=require('array')
 local FP=require('FP')
@@ -12,7 +13,7 @@ function Vector:new(config)
     }
     self.name=config.name
     local default=config.default
-    self.keys=Array(table.keys(default))
+    self.keys=Array(table.keys(default)):sorted()
     self:merge(default)
 end
 function Vector:map(func)
@@ -33,8 +34,8 @@ function Vector:dot(vec)
     return res
 end
 function Vector:reduce(func,init_value)
-    return self.keys:reduce(function (accumulator,key)
-        return func(accumulator,self[key])
+    return self.keys:reduce(function (accumulator,key,index)
+        return func(accumulator,self[key],key)
     end,init_value)
 end
 function Vector:__add(v)
@@ -131,7 +132,8 @@ function Vector:normal()
     if len==0 then
         return self
     else
-        return self/len
+        local scale_2_normal=1/len
+        return self*scale_2_normal
     end
 end
 function Vector:sign()

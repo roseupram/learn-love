@@ -74,14 +74,14 @@ function Array:slice(start,end_,step)
     return arr
 end
 ---reduce(func,init_value)
----func(accumulator,value)
+---func(accumulator,value,index)
 ---@param func function
 ---@param init_value any
 ---@return any
 function Array:reduce(func,init_value)
     local accumulator=init_value or 0
     self:each(function (v,i)
-        accumulator = func(accumulator, v)
+        accumulator = func(accumulator, v,i)
     end)
     return accumulator
 end
