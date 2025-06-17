@@ -19,6 +19,13 @@ end
 function Mat4:row(i)
     return Vec4(table.unpack(self[i]))
 end
+function Mat4:column(c)
+   local col={}
+   for i=1,4 do
+    table.insert(col,self[i][c])
+   end
+   return Vec4(table.unpack(col))
+end
 function Mat4:__tostring()
     local s = "Mat4 {\n"
     for i,row in ipairs(self) do
@@ -29,8 +36,9 @@ end
 local function test()
     local m =Mat4()
     print(m)
-    local v = m:row(4)
-    print(v)
+    local r1 = m:row(1)
+    local c = m:column(1)
+    print(r1:dot(c))
 end
 -- test()
 return Mat4

@@ -11,6 +11,8 @@ No, still need style, for animation, rotation
 - use `Array:push`, DO NOT use `Array.push`
 - `__index`: when the key not found in table, search the key in __index
 - to debug in vscode, use `tomblind.local-lua-debugger-vscode`
+- vertex_position: shader only render vertex in [-1,1] 
+- mat in glsl is column-major
 - lua 5.1
 - lÖve 11.5
 > Conditionals (such as the ones in control structures) consider `false` and `nil` as false and `anything else` as true. Beware that, unlike some other scripting languages, Lua considers both zero and the empty string as true in conditional tests.
