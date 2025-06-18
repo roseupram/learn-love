@@ -9,6 +9,7 @@ local FP=require('FP')
 local Spire=require('spire')
 local timer=require('timer')
 local Mat=require("mat")
+local glb=require("glb")
 
 local T=0
 local font_size=30
@@ -60,6 +61,10 @@ function love.update(dt)
 end
 
 function love.load()
+    -- local f_name = 'model/test_color.glb'
+    local f_name = 'model/test.glb'
+    local model = glb.read(f_name)
+
     local font =love.graphics.newFont(18)
     love.graphics.setFont(font)
     print('load')
