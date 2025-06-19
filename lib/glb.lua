@@ -1,3 +1,4 @@
+local json = require("json")
 local glb={}
 local function read_uint32(file)
     --little endian
@@ -5,10 +6,6 @@ local function read_uint32(file)
     return b1 + b2 * 256 + b3 * 65536 + b4 * 16777216
 end
 
-local function json_parser(json_str)
-    local json_table={}
-    return
-end
 function glb.read(file_name)
     local glb_data={}
     local f = assert(io.open(file_name,'rb'))
@@ -19,12 +16,13 @@ function glb.read(file_name)
 
     local data_length = read_uint32(f)
     local data_type = f:read(4)
-    local data_content = f:read(data_length)
-    print(data_type, data_length, data_content)
+    local json_content = f:read(data_length)
+    -- local json_data = json.read(json_content)
+    print(data_type, data_length, json_content)
 
     data_length = read_uint32(f)
     data_type = f:read(4)
-    data_content = f:read(data_length)
+    local bin_content = f:read(data_length)
     print(data_type, data_length)
     return glb_data
 end
