@@ -16,7 +16,7 @@ function Parser:is_end()
     return self.pos>self.len
 end
 function Parser:run()
-    while true do
+    while not self:is_end() do
         local char = self:char()
         if char == '{' then
             return self:get_object()
@@ -27,9 +27,6 @@ function Parser:run()
         end
 
         self:move_by(1)
-        if self:is_end() then
-            break
-        end
     end
 end
 function Parser:match(pattern)
@@ -45,17 +42,22 @@ function Parser:get_value()
             return self:get_object()
         elseif char == '[' then
             return self:get_array()
-        elseif char:find("%s") ~= 1 then
-            -- ([-%w."]+)           [,}%]]
-            -- word and number      end char
-            value = self:match('([-%w."]+)%s*[,}%]]')
+        elseif char:find("[-%d]") == 1 then --number
+            value =  self:match('[-]?%d+[.]?%d*')
+
             offset = string.len(value)
-            if value:sub(1, 1) == '"' then
-                -- this a string, remove ""
-                value = value:sub(2, -2)
-            elseif value:find("[-%d]") == 1 then
-                value = value + 0
-            end
+            self:move_by(offset)
+            return value+0
+        elseif char == '"' then -- string
+            value = self:match('("[^"]-")%s*[,}%]]')
+
+            offset = string.len(value)
+            value = value:sub(2, -2)
+            self:move_by(offset)
+            return value
+        elseif char:find("[tf]")==1 then -- true/false
+            value = self:match('%a+')
+            offset = string.len(value)
             self:move_by(offset)
             return value
         end
@@ -65,11 +67,11 @@ end
 function Parser:get_object()
     local object={}
     self:move_by(1)
-    while true do
+    while not self:is_end() do
         --get key
         local key,value
         if self:char()=='"' then
-            key = self:match('%a+')
+            key = self:match('%a[%w_]*')
             self:move_by(key:len()+2)
         end
         if self:char()==":" then
@@ -83,16 +85,25 @@ function Parser:get_object()
             break
         end
 
-        self:move_by(1)
-        if self:is_end() then
-            break
+        if not value then
+            self:move_by(1)
         end
     end
     return object
 end
-function Parser:get_array(str)
+function Parser:get_array()
+    -- TODO
     local array={}
     self:move_by(1)
+    while not self:is_end() do
+        local value = self:get_value()
+        table.insert(array, value)
+        if self:char()==']' then
+            self:move_by(1)
+            break
+        end
+        self:move_by(1)
+    end
     return array
 end
 
@@ -105,12 +116,12 @@ end
 
 local function test()
     local s=[[
-    { "peole":"bob" , "b":-2 }
+    { "number":[1,2,"bad"] , "b":-2 }
     ]]
     local j =json.read(s)
-    for k,v in pairs(j) do
+    for k,v in ipairs(j.number) do
         print(k, v,type(v))
     end
 end
-test()
+-- test()
 return json

@@ -53,9 +53,11 @@ function love.update(dt)
     timer.update(dt)
     myShader:send("Time",love.timer.getTime())
     local x,y,z,u,v = myMesh:getVertex(1)
-    z=2+30*math.sin(love.timer.getTime())
+    x=2+30*math.sin(love.timer.getTime())
+    z=10
+
     for i=1,myMesh:getVertexCount() do
-        myMesh:setVertexAttribute(i,3,0,0,z)
+        myMesh:setVertexAttribute(i,3,x,y,z)
     end
     -- myMesh:setVertex(1,x,y,z,u,v)
 end
@@ -88,9 +90,10 @@ function love.load()
         {-100,100,100},
         {-101,100,100},
     }
-    myMesh=love.graphics.newMesh(vertex_format,vert,"triangles")
+    myMesh=love.graphics.newMesh(vertex_format,model.vertex,"triangles")
     -- myMesh:setTexture(myImage)
-    myMesh:setVertexMap(3,2,4,1,4,2,1,5,6,2,5,6,4,7,5)
+    -- myMesh:setVertexMap(3,2,4,1,4,2,1,5,6,2,5,6,4,7,5)
+    myMesh:setVertexMap(model.index)
     -- myMesh:setVertexMap(8,9,10,8,11,10)
     -- timer.oneshot(function (t)
     --     print(t,'oneshot')

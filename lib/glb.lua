@@ -5,6 +5,18 @@ local function read_uint32(file)
     local b1, b2, b3, b4 = file:read(1):byte(), file:read(1):byte(), file:read(1):byte(), file:read(1):byte()
     return b1 + b2 * 256 + b3 * 65536 + b4 * 16777216
 end
+local function read_float(bytes)
+    -- bytes={0,0,0x80,0x3f}
+    local sign = bytes[4] > 0x7f and -1 or 1
+    local exponent = bytes[4] % 0x80 * 2 + math.floor(bytes[3] / 0x80) - 127
+    local matissa = bytes[3] % 0x80 * 2 ^ 16 + bytes[2] * 2 ^ 8 + bytes[1]
+    return sign *(1+matissa/2^23)*2^exponent
+end
+local function read_uint16(bytes)
+    return bytes[1]+bytes[2]*2^8
+end
+
+
 
 function glb.read(file_name)
     local glb_data={}
@@ -17,13 +29,35 @@ function glb.read(file_name)
     local data_length = read_uint32(f)
     local data_type = f:read(4)
     local json_content = f:read(data_length)
-    -- local json_data = json.read(json_content)
-    print(data_type, data_length, json_content)
+    local json_data = json.read(json_content)
+    
+    print(data_type, data_length, json_content,"\n--")
 
     data_length = read_uint32(f)
     data_type = f:read(4)
     local bin_content = f:read(data_length)
     print(data_type, data_length)
+    local vertex = {}
+    local v={}
+    for i=1,120 do
+        local float_number = read_float({ bin_content:byte(-3+i*4, i*4) })
+        table.insert(v,float_number)
+        if i%3==0 then
+            table.insert(vertex,v)
+            v={}
+        end
+    end
+    local indexs={}
+    for i=1,60 do
+        local offset = 1280
+        local u16 = read_uint16({ bin_content:byte(-1+i*2+offset, i*2+offset) })
+        table.insert(indexs,u16+1)
+    end
+    for i,d in ipairs(indexs) do
+        print(table.unpack(vertex[d]))
+    end
+    glb_data.vertex=vertex
+    glb_data.index = indexs
     return glb_data
 end
 return glb

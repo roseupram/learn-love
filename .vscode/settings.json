@@ -3,5 +3,6 @@
         "love"
     ],
     "Lua.runtime.version": "Lua 5.1",
-    "pixelbyte.love2d.srcDir": "."
+    "pixelbyte.love2d.srcDir": ".",
+    "todo-tree.regex.regex": "(//|--|#|<!--|;|/\\*|^|^[ \\t]*(-|\\d+.))\\s*($TAGS)"
 }
