@@ -66,7 +66,8 @@ end
 
 function love.load()
     love.graphics.setMeshCullMode('front')
-    local f_name = 'model/test_color.glb'
+    local f_name = 'model/round.glb'
+    -- local f_name = 'model/test_color.glb'
     -- local f_name = 'model/test.glb'
     local model = glb.read(f_name)
 

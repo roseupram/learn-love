@@ -4,7 +4,7 @@ uniform mat4 transform;
 uniform mat4 view;
 
 float freq=10.0;
-float A=10;
+float A=1;
 float f=40;
 float screen_size=200;
 float theta=.5;
@@ -29,8 +29,8 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
         origin.x,origin.y,origin.z,1
     );
     vec4 pos=model*vertex_position;
-    // pos.x += 4*A*sin(Time);
-    //pos.z += A*cos(Time);
+    pos.x += 4*A*sin(Time);
+    pos.z += A*cos(Time);
     pos.x/=pos.z;
     pos.y/=pos.z;
     pos = proj*pos;
