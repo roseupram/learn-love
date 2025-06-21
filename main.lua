@@ -43,28 +43,31 @@ function love.draw()
     local img_w,img_h = myImage:getDimensions()
 
     love.graphics.print(v1:len(),400,450)
-    love.graphics.print(tostring(origin:cross(Point(0, 1, 0))), 10, 10)
-    love.graphics.draw(myImage,Width/2-img_w/2,100)
+    love.graphics.print(string.format("FPS: %i",love.timer.getFPS()), 10, 10)
+    -- love.graphics.draw(myImage,Width/2-img_w/2,100)
     -- css:render(spire)
 end
 --- see https://www.love2d.org/wiki/love.run
 --- after update, call origin,clear,draw
 function love.update(dt)
     timer.update(dt)
-    myShader:send("Time",love.timer.getTime())
-    local x,y,z,u,v = myMesh:getVertex(1)
-    x=2+30*math.sin(love.timer.getTime())
-    z=10
-
+    local time = love.timer.getTime()
+    myShader:send("Time",time)
+    local r,g,b=1,1,1
     for i=1,myMesh:getVertexCount() do
-        myMesh:setVertexAttribute(i,3,x,y,z)
+        r=20*math.cos(2.4*time)
+        local z=10+5*math.cos(time)
+        b=50*math.sin(time*1.1)
+        myMesh:setVertexAttribute(i,3,r,b,40)
+        -- myMesh:setVertexAttribute(i, 2, g,1,1)
     end
     -- myMesh:setVertex(1,x,y,z,u,v)
 end
 
 function love.load()
-    -- local f_name = 'model/test_color.glb'
-    local f_name = 'model/test.glb'
+    love.graphics.setMeshCullMode('front')
+    local f_name = 'model/test_color.glb'
+    -- local f_name = 'model/test.glb'
     local model = glb.read(f_name)
 
     local font =love.graphics.newFont(18)
@@ -74,23 +77,24 @@ function love.load()
     myImage=love.graphics.newImage("th.jpg")
     local vertex_format={
         {"VertexPosition","float",3},
-        {"VertexTexCoord","float",2},
-        {"origin","float",3},
+        {"VertexColor","float",3},
+        {"origin","float",3}
     }
     local vert={
-        { 10, -60, 40.0, 0, 0, 0, 0, 0 },
-        { 20, -60, 40.0, 1, 0,  3, 0, 0 },
-        { 20, -60, 50,   1, 1 },
-        { 10, -60, 50,   0, 1 },
-        { 10, -70, 40.0, 0, 0 },
-        { 20, -70, 40.0, 1, 0 },
-        { 10, -70, 50.0, 1, 0 },
-        {0,-100,50},
-        {1,-100,50},
-        {-100,100,100},
-        {-101,100,100},
+        { 10,   -60,  40.0, 1, 0, 0 },
+        { 20,   -60,  40.0, 1, 1, 0 },
+        { 20,   -60,  50,   1, 1 },
+        { 10,   -60,  50,   0, 1 },
+        { 10,   -70,  40.0, 0, 0, 1 },
+        { 20,   -70,  40.0, 1, 0 },
+        { 10,   -70,  50.0, 1, 0 },
+        { 0,    -100, 50 ,1,1,1},
+        { 1,    -100, 50 ,0,1,1},
+        { -100, 100,  100 ,.5,1,.5},
+        { -101, 100,  100 ,1,.5,.5},
     }
     myMesh=love.graphics.newMesh(vertex_format,model.vertex,"triangles")
+    -- myMesh=love.graphics.newMesh(vertex_format,vert,"triangles")
     -- myMesh:setTexture(myImage)
     -- myMesh:setVertexMap(3,2,4,1,4,2,1,5,6,2,5,6,4,7,5)
     myMesh:setVertexMap(model.index)
