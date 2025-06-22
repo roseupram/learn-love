@@ -28,6 +28,7 @@ local function line(v1,v2)
 end
 local myShader,myImage,myMesh
 function love.draw()
+    love.graphics.clear(.3,.3,.3)
     love.graphics.setShader(myShader)
     love.graphics.draw(myMesh)
     love.graphics.setShader()
@@ -66,7 +67,7 @@ end
 
 function love.load()
     love.graphics.setMeshCullMode('front')
-    local f_name = 'model/round.glb'
+    local f_name = 'model/torch.glb'
     -- local f_name = 'model/test_color.glb'
     -- local f_name = 'model/test.glb'
     local model = glb.read(f_name)

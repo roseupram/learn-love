@@ -7,7 +7,6 @@ float freq=10.0;
 float A=1;
 float f=40;
 float screen_size=200;
-float theta=.5;
 
 varying vec4 v_color;
 
@@ -21,14 +20,27 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
         0,0,2/screen_size,0,
         0,0,0,1
     );
-    float scale = 5;
-    mat4 model=mat4(
+    float scale = 50;
+    mat4 scalate=mat4(
         scale,0,0,0,
         0,scale,0,0,
         0,0,scale,0,
+        0,0,0,1
+    );
+    mat4 tranlate=mat4(
+       1 ,0,0,0,
+        0,1,0,0,
+        0,0,1,0,
         origin.x,origin.y,origin.z,1
     );
-    vec4 pos=model*vertex_position;
+    float theta=Time;
+    mat4 rotate = mat4(
+        cos(theta),-sin(theta),0,0,
+        sin(theta),cos(theta),0,0,
+        0,0,1,0,
+        0,0,0,1
+    );
+    vec4 pos=tranlate*rotate*scalate*vertex_position;
     pos.x += 4*A*sin(Time);
     pos.z += A*cos(Time);
     pos.x/=pos.z;

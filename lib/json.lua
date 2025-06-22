@@ -64,6 +64,13 @@ function Parser:get_value()
         self:move_by(1)
     end
 end
+function Parser:skip_space()
+    local has_space=self:char():find("%s") == 1
+    if has_space then
+        local space_str = self.str:match("%s+")
+        self:move_by(space_str:len())
+    end
+end
 function Parser:get_object()
     local object={}
     self:move_by(1)
@@ -98,6 +105,7 @@ function Parser:get_array()
     while not self:is_end() do
         local value = self:get_value()
         table.insert(array, value)
+        self:skip_space()
         if self:char()==']' then
             self:move_by(1)
             break

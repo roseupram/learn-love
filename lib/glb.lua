@@ -40,32 +40,35 @@ function glb.read(file_name)
     local vertex = {}
     local indexs = {}
     local new_index_start=0
-    for a=1,(#json_data.accessors /4) do
-        local accessor = json_data.accessors[-3+a*4]
-        local bufferview = json_data.bufferViews[accessor.bufferView+1]
-        local offset = bufferview.byteOffset
-        local v = {}
-        local material = json_data.materials[a]
-        local color = material.pbrMetallicRoughness.baseColorFactor
-        for i = 1, accessor.count * 3 do
-            local float_number = read_float({ bin_content:byte(-3 + i * 4+offset, i * 4+offset) })
-            table.insert(v, float_number)
-            if i % 3 == 0 then
-                for c=1,3 do
-                    table.insert(v,color[c])
+    for mesh_id,mesh in ipairs(json_data.meshes) do
+        for a,p in ipairs(mesh.primitives) do
+            
+            local accessor = json_data.accessors[p.attributes.POSITION+1]
+            local bufferview = json_data.bufferViews[accessor.bufferView + 1]
+            local offset = bufferview.byteOffset
+            local v = {}
+            local material = json_data.materials[a]
+            local color = material.pbrMetallicRoughness.baseColorFactor
+            for i = 1, accessor.count * 3 do
+                local float_number = read_float({ bin_content:byte(-3 + i * 4 + offset, i * 4 + offset) })
+                table.insert(v, float_number)
+                if i % 3 == 0 then
+                    for c = 1, 3 do
+                        table.insert(v, color[c])
+                    end
+                    table.insert(vertex, v)
+                    v = {}
                 end
-                table.insert(vertex, v)
-                v = {}
             end
+            accessor = json_data.accessors[p.indices+1]
+            bufferview = json_data.bufferViews[accessor.bufferView + 1]
+            offset = bufferview.byteOffset
+            for i = 1, accessor.count do
+                local u16 = read_uint16({ bin_content:byte(-1 + i * 2 + offset, i * 2 + offset) })
+                table.insert(indexs, u16 + 1 + new_index_start)
+            end
+            new_index_start = #vertex
         end
-        accessor = json_data.accessors[a*4]
-        bufferview = json_data.bufferViews[accessor.bufferView+1]
-        offset = bufferview.byteOffset
-        for i = 1, accessor.count do
-            local u16 = read_uint16({ bin_content:byte(-1 + i * 2 + offset, i * 2 + offset) })
-            table.insert(indexs, u16 + 1 + new_index_start)
-        end
-        new_index_start=#vertex
     end
     glb_data.vertex=vertex
     glb_data.index = indexs
