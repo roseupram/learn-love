@@ -19,5 +19,6 @@ function love.conf(t)
     t.modules.physics=false
     -- t.window.fullscreen=true
     t.window.resizable=false
+    t.window.depth=16
     -- t.window.msaa=2
 end

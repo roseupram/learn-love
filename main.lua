@@ -27,12 +27,12 @@ local function line(v1,v2)
     love.graphics.line(x,y,v2:unpack())
 end
 local myShader,myImage,myMesh,instancemesh
-    local origins={
-    }
-    for i=1,10 do
-        local o={30,-30,10+10*i}
-        table.insert(origins,o)
-    end
+local origins = {
+}
+for i = 1, 10 do
+    local o = { 30, -30, 10 + 10 * i }
+    table.insert(origins, o)
+end
 function love.draw()
     love.graphics.clear(.3,.3,.3)
     love.graphics.setShader(myShader)
@@ -74,7 +74,8 @@ function love.update(dt)
 end
 
 function love.load()
-    love.graphics.setMeshCullMode('front')
+    -- love.graphics.setMeshCullMode('front')
+    love.graphics.setDepthMode("less",true)
     local f_name = 'model/torch.glb'
     -- local f_name = 'model/test_color.glb'
     -- local f_name = 'model/test.glb'
