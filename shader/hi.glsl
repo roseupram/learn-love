@@ -1,3 +1,4 @@
+#pragma language glsl3
 uniform float Time=0.0;
 uniform mat4 projection;
 uniform mat4 transform;
@@ -33,13 +34,16 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
         0,0,1,0,
         origin.x,origin.y,origin.z,1
     );
-    float theta=Time;
+    float theta=0;
+    float y_rot=Time;
+    //in rotate matrix, column is rotated axis
     mat4 rotate = mat4(
-        cos(theta),-sin(theta),0,0,
+        cos(theta)*cos(y_rot),-sin(theta),sin(y_rot),0,
         sin(theta),cos(theta),0,0,
-        0,0,1,0,
+        -sin(y_rot),0,cos(y_rot),0,
         0,0,0,1
     );
+    mat4 inv_r = inverse(rotate);
     vec4 pos=tranlate*rotate*scalate*vertex_position;
     pos.x += 4*A*sin(Time);
     pos.z += A*cos(Time);
@@ -54,8 +58,8 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
 #ifdef PIXEL
 
 
-vec4 effect(vec4 color, Image texture,vec2 texture_coords,vec2 screen_coords){
-    vec4 pixel= Texel(texture,texture_coords);
+vec4 effect(vec4 color, Image texture_,vec2 texture_coords,vec2 screen_coords){
+    vec4 pixel= Texel(texture_,texture_coords);
     // pixel.r=VaryingColor.r;
     pixel=VaryingColor;
     // float v = v_color.z;

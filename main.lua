@@ -26,11 +26,18 @@ local function line(v1,v2)
     local x,y=v1:unpack()
     love.graphics.line(x,y,v2:unpack())
 end
-local myShader,myImage,myMesh
+local myShader,myImage,myMesh,instancemesh
+    local origins={
+    }
+    for i=1,10 do
+        local o={30,-30,10+10*i}
+        table.insert(origins,o)
+    end
 function love.draw()
     love.graphics.clear(.3,.3,.3)
     love.graphics.setShader(myShader)
-    love.graphics.draw(myMesh)
+    -- love.graphics.draw(myMesh)
+    love.graphics.drawInstanced(myMesh,#origins)
     love.graphics.setShader()
 
     local v1,v2=Vec(100,100),Vec(200,200)
@@ -59,9 +66,10 @@ function love.update(dt)
         r=20*math.cos(2.4*time)
         local z=10+5*math.cos(time)
         b=50*math.sin(time*1.1)
-        myMesh:setVertexAttribute(i,3,r,b,40)
+        -- myMesh:setVertexAttribute(i,3,r,b,40)
         -- myMesh:setVertexAttribute(i, 2, g,1,1)
     end
+    myMesh:attachAttribute("origin",instancemesh,"perinstance")
     -- myMesh:setVertex(1,x,y,z,u,v)
 end
 
@@ -108,6 +116,7 @@ function love.load()
     -- love.mouse.setPosition(w/2,h/2)
     -- pen.size=Vec(200,200)
     -- pen:push(Shape.Line(pen.center,Vec(100,100)))
+    instancemesh=love.graphics.newMesh({{"origin","float",3}},origins,nil,'static')
 end
 function love.resize(w,h)
     -- spire.content=rectsize(0,0,w,h)
