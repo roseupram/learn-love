@@ -29,8 +29,13 @@ end
 local myShader,myImage,myMesh,instancemesh
 local origins = {
 }
+local z_t,x_t,y_rot=0,0,0
 for i = 1, 10 do
     local o = { 30, -30, 10 + 10 * i }
+    table.insert(origins, o)
+    o = {  -80 + 10 * i,-30,110 }
+    table.insert(origins, o)
+    o = { -70, -30, 10 + 10 * i }
     table.insert(origins, o)
 end
 function love.draw()
@@ -58,9 +63,34 @@ end
 --- see https://www.love2d.org/wiki/love.run
 --- after update, call origin,clear,draw
 function love.update(dt)
+    local max_v=20
+    local v= 0
+    if love.keyboard.isDown('w') then
+        v=1
+    elseif love.keyboard.isDown('s') then
+        v=-1
+    end
+    z_t=z_t+v*dt*max_v
+    v=0
+    if love.keyboard.isDown('d') then
+        v=1
+    elseif love.keyboard.isDown('a') then
+        v=-1
+    end
+    x_t=x_t+v*dt*max_v
+    v=0
+    if love.keyboard.isDown('q') then
+        v=1
+    elseif love.keyboard.isDown('e') then
+        v=-1
+    end
+    y_rot=y_rot+v*dt
     timer.update(dt)
     local time = love.timer.getTime()
     myShader:send("Time",time)
+    myShader:send("z_t",z_t)
+    myShader:send("x_t",x_t)
+    myShader:send("y_r",y_rot)
     local r,g,b=1,1,1
     for i=1,myMesh:getVertexCount() do
         r=20*math.cos(2.4*time)
@@ -74,7 +104,7 @@ function love.update(dt)
 end
 
 function love.load()
-    -- love.graphics.setMeshCullMode('front')
+    love.graphics.setMeshCullMode('back')
     love.graphics.setDepthMode("less",true)
     local f_name = 'model/torch.glb'
     -- local f_name = 'model/test_color.glb'
