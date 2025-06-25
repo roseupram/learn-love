@@ -3,7 +3,9 @@ uniform float Time=0.0;
 uniform float x_t=0.0;
 uniform float z_t=0.0;
 uniform float y_r=0.0;
-float near = 10;
+uniform float scale = 30;
+const float near = 10;
+const float PI = asin(1.0)*2.0;
 
 float freq=10.0;
 float A=0;
@@ -22,7 +24,6 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
         0,0,2/screen_size,0,
         0,0,0,1
     );
-    float scale = 30;
     mat4 scalate=mat4(
         scale,0,0,0,
         0,scale,0,0,
@@ -36,7 +37,7 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
         origin.x,origin.y,origin.z,1
     );
     float theta=0;
-    float y_rot=Time*0.;
+    float y_rot=Time*0.+PI;
     //in rotate matrix, column is rotated axis
     mat4 rotate = mat4(
         cos(theta)*cos(y_rot),-sin(theta),sin(y_rot),0,
