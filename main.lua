@@ -29,7 +29,8 @@ end
 local myShader,myImage,myMesh,instancemesh
 local origins = {
 }
-local z_t,x_t,y_rot=0,0,0
+local z_t,y_t,x_t,y_rot=0,0,0,0
+local up_v = 0
 for i = 1, 10 do
     local o = { 30, -30, 10 + 10 * i }
     table.insert(origins, o)
@@ -88,11 +89,21 @@ function love.update(dt)
         v=-1
     end
     y_rot=y_rot+v*dt
+    local up_v_len,gravity=40,9.8*10
+    if love.keyboard.isDown('space') and y_t <=0.1 then
+        up_v=up_v_len
+    end
+    up_v = up_v - gravity * dt
+    y_t = y_t + dt * up_v
+    if y_t<0 then
+        y_t=0
+        up_v=0
+    end
+    print(y_t,up_v)
     timer.update(dt)
     local time = love.timer.getTime()
     myShader:send("Time",time)
-    myShader:send("z_t",z_t)
-    myShader:send("x_t",x_t)
+    myShader:send("u_translate",{x_t,y_t,z_t})
     myShader:send("y_r",y_rot)
 
     myShader:send("scale",3)

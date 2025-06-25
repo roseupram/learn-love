@@ -11,7 +11,8 @@ No, still need style, for animation, rotation
 - use `Array:push`, DO NOT use `Array.push`
 - `__index`: when the key not found in table, search the key in __index
 - to debug in vscode, use `tomblind.local-lua-debugger-vscode`
-- vertex_position: shader only render vertex in [-1,1] 
+- vertex_position: shader only render vertex in [-1,1], -1 is near, 1 is far  
+ but normally in models z+ is front, just putting model will make modle back to us, rotating by PI will fix it
 - mat in glsl is column-major
 - lua 5.1
 - lÖve 11.5

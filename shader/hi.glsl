@@ -1,9 +1,8 @@
 #pragma language glsl3
 uniform float Time=0.0;
-uniform float x_t=0.0;
-uniform float z_t=0.0;
-uniform float y_r=0.0;
-uniform float scale = 30;
+uniform float y_r;
+uniform vec3 u_translate;
+uniform float scale;
 const float near = 10;
 const float PI = asin(1.0)*2.0;
 
@@ -54,7 +53,7 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
         1,0,0,0,
         0,1,0,0,
         0,0,1,0,
-        x_t,0,z_t,1
+        u_translate,1
     );
     mat4 camera_rot = mat4(
         cos(cam_y_r),0,sin(cam_y_r),0,
