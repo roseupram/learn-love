@@ -79,7 +79,7 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
 vec4 effect(vec4 color, Image texture_,vec2 texture_coords,vec2 screen_coords){
     vec4 pixel= Texel(texture_,texture_coords);
     // pixel.r=VaryingColor.r;
-    pixel=VaryingColor;
+    pixel*=VaryingColor;
     // float v = v_color.z;
     //  pixel.r= v;
     // pixel.b=1-v_color.z;

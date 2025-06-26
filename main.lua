@@ -26,7 +26,7 @@ local function line(v1,v2)
     local x,y=v1:unpack()
     love.graphics.line(x,y,v2:unpack())
 end
-local myShader,myImage,myMesh,instancemesh
+local myShader,myImage,myMesh,instancemesh,model
 local origins = {
 }
 local z_t,y_t,x_t,y_rot=0,0,0,0
@@ -58,7 +58,7 @@ function love.draw()
 
     love.graphics.print(v1:len(),400,450)
     love.graphics.print(string.format("FPS: %i",love.timer.getFPS()), 10, 10)
-    -- love.graphics.draw(myImage,Width/2-img_w/2,100)
+    love.graphics.draw(model.images[1],Width/2-img_w/2,100)
     -- css:render(spire)
 end
 --- see https://www.love2d.org/wiki/love.run
@@ -99,7 +99,6 @@ function love.update(dt)
         y_t=0
         up_v=0
     end
-    print(y_t,up_v)
     timer.update(dt)
     local time = love.timer.getTime()
     myShader:send("Time",time)
@@ -122,11 +121,12 @@ end
 function love.load()
     love.graphics.setMeshCullMode('front')
     love.graphics.setDepthMode("less",true)
-    local f_name = 'model/dice.glb'
+    local f_name = 'model/dice_uv.glb'
+    -- f_name = 'model/dice.glb'
     -- local f_name = 'model/torch.glb'
     -- local f_name = 'model/test_color.glb'
     -- local f_name = 'model/test.glb'
-    local model = glb.read(f_name)
+    model = glb.read(f_name)
 
     local font =love.graphics.newFont(18)
     love.graphics.setFont(font)
@@ -136,7 +136,8 @@ function love.load()
     local vertex_format={
         {"VertexPosition","float",3},
         {"VertexColor","float",3},
-        {"origin","float",3}
+        {"VertexTexCoord","float",2},
+        {"origin","float",3},
     }
     local vert={
         { 10,   -60,  40.0, 1, 0, 0 },
@@ -153,7 +154,7 @@ function love.load()
     }
     myMesh=love.graphics.newMesh(vertex_format,model.vertex,"triangles")
     -- myMesh=love.graphics.newMesh(vertex_format,vert,"triangles")
-    -- myMesh:setTexture(myImage)
+    myMesh:setTexture(model.images[1])
     -- myMesh:setVertexMap(3,2,4,1,4,2,1,5,6,2,5,6,4,7,5)
     myMesh:setVertexMap(model.index)
     -- myMesh:setVertexMap(8,9,10,8,11,10)

@@ -16,7 +16,9 @@ local function read_uint16(bytes)
     return bytes[1]+bytes[2]*2^8
 end
 
-
+local BYTE_LEN={}
+BYTE_LEN[5126]=4
+BYTE_LEN[5123]=2
 
 function glb.read(file_name)
     local glb_data={}
@@ -39,6 +41,16 @@ function glb.read(file_name)
     print(data_type, data_length)
     local vertex = {}
     local indexs = {}
+    local images = {}
+    for i,image in ipairs(json_data.images or {})do
+        local bufferview=json_data.bufferViews[image.bufferView+1]
+        local offset = bufferview.byteOffset+1
+        local len=bufferview.byteLength
+        local image_data = bin_content:sub(offset,offset+len)
+        local file = love.filesystem.newFileData(image_data,image.name)
+        local img_data = love.image.newImageData(file)
+        table.insert(images,love.graphics.newImage(img_data))
+    end
     local new_index_start=0
     for mesh_id,mesh in ipairs(json_data.meshes) do
         for a,p in ipairs(mesh.primitives) do
@@ -48,9 +60,12 @@ function glb.read(file_name)
             local offset = bufferview.byteOffset
             local v = {}
             local material = json_data.materials[a]
-            local color = material.pbrMetallicRoughness.baseColorFactor
-            for i = 1, accessor.count * 3 do
-                local float_number = read_float({ bin_content:byte(-3 + i * 4 + offset, i * 4 + offset) })
+            local color = material.pbrMetallicRoughness.baseColorFactor or {1,1,1,1}
+            local data_size = accessor.type:match("%d+") or 1 -- component number
+            local byte_len = BYTE_LEN[accessor.componentType]
+            for i = 1, accessor.count * data_size do
+                local start = i * byte_len - byte_len + 1 + offset
+                local float_number = read_float({ bin_content:byte(start, start + byte_len) })
                 table.insert(v, float_number)
                 if i % 3 == 0 then
                     for c = 1, 3 do
@@ -60,11 +75,30 @@ function glb.read(file_name)
                     v = {}
                 end
             end
+            accessor = json_data.accessors[p.attributes.TEXCOORD_0+1]
+            bufferview = json_data.bufferViews[accessor.bufferView + 1]
+            offset = bufferview.byteOffset
+            local uv={}
+            data_size = accessor.type:match("%d+") or 1
+            for i=1,accessor.count*data_size do
+                local float_numer = read_float({ bin_content:byte(-3 + i * 4 + offset, i * 4 + offset) })
+                table.insert(uv,float_numer)
+                if i%2==0 then
+                    local vertex_index=i/2
+                    for u=1,2 do
+                        table.insert(vertex[vertex_index],uv[u])
+                    end
+                    uv={}
+                end
+            end
             accessor = json_data.accessors[p.indices+1]
             bufferview = json_data.bufferViews[accessor.bufferView + 1]
             offset = bufferview.byteOffset
-            for i = 1, accessor.count do
-                local u16 = read_uint16({ bin_content:byte(-1 + i * 2 + offset, i * 2 + offset) })
+            data_size = accessor.type:match("%d+") or 1
+            byte_len = BYTE_LEN[accessor.componentType]
+            for i = 1, accessor.count*data_size do
+                local start = i * byte_len - byte_len + 1 + offset
+                local u16 = read_uint16({ bin_content:byte(start, start+byte_len) })
                 table.insert(indexs, u16 + 1 + new_index_start)
             end
             new_index_start = #vertex
@@ -73,6 +107,7 @@ function glb.read(file_name)
     glb_data.vertex=vertex
     glb_data.index = indexs
     glb_data.json=json_data
+    glb_data.images=images
     return glb_data
 end
 return glb

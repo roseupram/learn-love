@@ -99,7 +99,6 @@ function Parser:get_object()
     return object
 end
 function Parser:get_array()
-    -- TODO
     local array={}
     self:move_by(1)
     while not self:is_end() do
