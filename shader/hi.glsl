@@ -3,24 +3,25 @@ uniform float Time=0.0;
 uniform float y_r;
 uniform vec3 u_translate;
 uniform float scale;
-const float near = 10;
+uniform float focal_len=40;
+const float near = 30;
 const float PI = asin(1.0)*2.0;
 
 float freq=10.0;
 float A=0;
-float f=40;
 float screen_size=200;
 
 varying vec4 v_color;
+varying float v_visible;
 
 #ifdef VERTEX
 attribute vec3 origin;
 vec4 position(mat4 transform_project, vec4 vertex_position){
 
     mat4 proj=mat4(
-        2/screen_size*f,0,0,0,
-        0,2/screen_size*f,0,0,
-        0,0,2/screen_size,0,
+        2/screen_size*focal_len,0,0,0,
+        0,2/screen_size*focal_len,0,0,
+        0,0,.5/focal_len,0,
         0,0,0,1
     );
     mat4 scalate=mat4(
@@ -62,10 +63,14 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
         0,0,0,1
     );
     vec4 pos= inverse(camera_rot)*inverse(camera_t)*pos_world;
+    float cos_angle_to_cam=pos.z/sqrt(pos.x*pos.x+pos.y*pos.y);
     pos.x/=pos.z;
     pos.y/=pos.z;
-    if (pos.z<near) {
-        pos.z=-screen_size;
+    if (cos_angle_to_cam<cos(PI*60/180)) {
+        v_visible=0.0;
+        pos=vec4(0,0,-2,0);
+    }else {
+        v_visible=1.0;
     }
     pos = proj*pos;
     float v = pos.y;

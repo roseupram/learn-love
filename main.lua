@@ -30,6 +30,7 @@ local myShader,myImage,myMesh,instancemesh,model
 local origins = {
 }
 local z_t,y_t,x_t,y_rot=0,0,0,0
+local focal_len=100
 local up_v = 0
 for i = 1, 10 do
     local o = { 30, -30, 10 + 10 * i }
@@ -43,7 +44,7 @@ function love.draw()
     love.graphics.clear(.3,.3,.3)
     love.graphics.setShader(myShader)
     -- love.graphics.draw(myMesh)
-    love.graphics.drawInstanced(myMesh,#origins)
+    love.graphics.drawInstanced(myMesh,nil or #origins)
     love.graphics.setShader()
 
     local v1,v2=Vec(100,100),Vec(200,200)
@@ -104,6 +105,7 @@ function love.update(dt)
     myShader:send("Time",time)
     myShader:send("u_translate",{x_t,y_t,z_t})
     myShader:send("y_r",y_rot)
+    myShader:send("focal_len",focal_len)
 
     myShader:send("scale",3)
     local r,g,b=1,1,1
@@ -186,4 +188,10 @@ function love.keypressed(key,scancode,isrepeat)
     if key =='escape'then
         love.event.quit(0)
     end
+end
+
+function love.wheelmoved(x,y) 
+    local move_v=5
+    focal_len=math.max(focal_len+y*move_v,0.1)
+    print(focal_len)
 end
