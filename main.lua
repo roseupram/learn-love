@@ -41,7 +41,8 @@ for i = 1, 10 do
     table.insert(origins, o)
 end
 function love.draw()
-    love.graphics.clear(.3,.3,.3)
+    local bg_color = {0.3,0.3,0.3}
+    love.graphics.clear(table.unpack(bg_color))
     love.graphics.setShader(myShader)
     -- love.graphics.draw(myMesh)
     love.graphics.drawInstanced(myMesh,nil or #origins)
@@ -91,7 +92,8 @@ function love.update(dt)
     end
     y_rot=y_rot+v*dt
     local up_v_len,gravity=40,9.8*10
-    if love.keyboard.isDown('space') and y_t <=0.1 then
+    local y_max=100
+    if love.keyboard.isDown('space') and y_t <=y_max then
         up_v=up_v_len
     end
     up_v = up_v - gravity * dt
@@ -107,6 +109,8 @@ function love.update(dt)
     myShader:send("y_r",y_rot)
     myShader:send("focal_len",focal_len)
 
+    local Width,Height= love.graphics.getDimensions()
+    myShader:send('wh_ratio',Width/Height)
     myShader:send("scale",3)
     local r,g,b=1,1,1
     for i=1,myMesh:getVertexCount() do
