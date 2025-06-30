@@ -13,20 +13,8 @@ local glb=require("glb")
 
 local T=0
 local font_size=30
--- local font=love.graphics.newFont('simhei.ttf',font_size)
-local origin=Point(1,0,0)
--- local css = require('css')(require('style_class'))
--- local spire=Spire()
 
--- love.event.quit()
----comment
----@param v1 Vec2
----@param v2 Vec2
-local function line(v1,v2)
-    local x,y=v1:unpack()
-    love.graphics.line(x,y,v2:unpack())
-end
-local myShader,myImage,myMesh,instancemesh,model
+local myShader,myImage,myMesh,instancemesh,model,myline
 local origins = {
 }
 local z_t,y_t,x_t,y_rot=0,0,0,0
@@ -45,7 +33,10 @@ function love.draw()
     love.graphics.clear(table.unpack(bg_color))
     love.graphics.setShader(myShader)
     -- love.graphics.draw(myMesh)
+    myShader:send("scale",3)
     love.graphics.drawInstanced(myMesh,nil or #origins)
+    myShader:send("scale",1)
+    love.graphics.draw(myline)
     love.graphics.setShader()
 
     local v1,v2=Vec(100,100),Vec(200,200)
@@ -60,7 +51,7 @@ function love.draw()
 
     love.graphics.print(v1:len(),400,450)
     love.graphics.print(string.format("FPS: %i",love.timer.getFPS()), 10, 10)
-    love.graphics.draw(model.images[1],Width/2-img_w/2,100)
+    -- love.graphics.draw(model.images[1],Width/2-img_w/2,100)
     -- css:render(spire)
 end
 --- see https://www.love2d.org/wiki/love.run
@@ -111,21 +102,12 @@ function love.update(dt)
 
     local Width,Height= love.graphics.getDimensions()
     myShader:send('wh_ratio',Width/Height)
-    myShader:send("scale",3)
-    local r,g,b=1,1,1
-    for i=1,myMesh:getVertexCount() do
-        r=20*math.cos(2.4*time)
-        local z=10+5*math.cos(time)
-        b=50*math.sin(time*1.1)
-        -- myMesh:setVertexAttribute(i,3,r,b,40)
-        -- myMesh:setVertexAttribute(i, 2, g,1,1)
-    end
     myMesh:attachAttribute("origin",instancemesh,"perinstance")
     -- myMesh:setVertex(1,x,y,z,u,v)
 end
 
 function love.load()
-    love.graphics.setMeshCullMode('front')
+    love.graphics.setMeshCullMode('back')
     love.graphics.setDepthMode("less",true)
     local f_name = 'model/dice_uv.glb'
     -- f_name = 'model/dice.glb'
@@ -145,23 +127,18 @@ function love.load()
         {"VertexTexCoord","float",2},
         {"origin","float",3},
     }
-    local vert={
-        { 10,   -60,  40.0, 1, 0, 0 },
-        { 20,   -60,  40.0, 1, 1, 0 },
-        { 20,   -60,  50,   1, 1 },
-        { 10,   -60,  50,   0, 1 },
-        { 10,   -70,  40.0, 0, 0, 1 },
-        { 20,   -70,  40.0, 1, 0 },
-        { 10,   -70,  50.0, 1, 0 },
-        { 0,    -100, 50 ,1,1,1},
-        { 1,    -100, 50 ,0,1,1},
-        { -100, 100,  100 ,.5,1,.5},
-        { -101, 100,  100 ,1,.5,.5},
+    local z=40
+    local vertex={
+        { 0, 0,  z*.2,   0.5, 1, 1 },
+        { 20,  0,  z,   1, 0, 0 },
+        { 20,  -1, z, 1, 0, 0},
+        { 0,  -1, z*.2, 0.5, 1, 1},
     }
     myMesh=love.graphics.newMesh(vertex_format,model.vertex,"triangles")
+    myline=love.graphics.newMesh(vertex_format,vertex,'triangles')
+    myline:setVertexMap(1,3,2,1,4,3)
     -- myMesh=love.graphics.newMesh(vertex_format,vert,"triangles")
     myMesh:setTexture(model.images[1])
-    -- myMesh:setVertexMap(3,2,4,1,4,2,1,5,6,2,5,6,4,7,5)
     myMesh:setVertexMap(model.index)
     -- myMesh:setVertexMap(8,9,10,8,11,10)
     -- timer.oneshot(function (t)
