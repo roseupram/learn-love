@@ -33,9 +33,7 @@ function love.draw()
     love.graphics.clear(table.unpack(bg_color))
     love.graphics.setShader(myShader)
     -- love.graphics.draw(myMesh)
-    myShader:send("scale",3)
     love.graphics.drawInstanced(myMesh,nil or #origins)
-    myShader:send("scale",1)
     love.graphics.draw(myline)
     love.graphics.setShader()
 
@@ -102,12 +100,11 @@ function love.update(dt)
 
     local Width,Height= love.graphics.getDimensions()
     myShader:send('wh_ratio',Width/Height)
-    myMesh:attachAttribute("origin",instancemesh,"perinstance")
     -- myMesh:setVertex(1,x,y,z,u,v)
 end
 
 function love.load()
-    love.graphics.setMeshCullMode('back')
+    -- love.graphics.setMeshCullMode('back')
     love.graphics.setDepthMode("less",true)
     local f_name = 'model/dice_uv.glb'
     -- f_name = 'model/dice.glb'
@@ -125,14 +122,15 @@ function love.load()
         {"VertexPosition","float",3},
         {"VertexColor","float",3},
         {"VertexTexCoord","float",2},
-        {"origin","float",3},
+        {"a_origin","float",3},
+        {"a_scale","float",3}
     }
     local z=40
     local vertex={
-        { 0, 0,  z*.2,   0.5, 1, 1 },
-        { 20,  0,  z,   1, 0, 0 },
-        { 20,  -1, z, 1, 0, 0},
-        { 0,  -1, z*.2, 0.5, 1, 1},
+        { 0, 0,  0,   0.5, 1, 1 },
+        { 0,  0,  z,   1, 0, 0 },
+        { 0,  -1, z, 1, 0, 0},
+        { 0,  -1, 0, 0.5, 1, 1},
     }
     myMesh=love.graphics.newMesh(vertex_format,model.vertex,"triangles")
     myline=love.graphics.newMesh(vertex_format,vertex,'triangles')
@@ -148,7 +146,16 @@ function love.load()
     -- love.mouse.setPosition(w/2,h/2)
     -- pen.size=Vec(200,200)
     -- pen:push(Shape.Line(pen.center,Vec(100,100)))
-    instancemesh=love.graphics.newMesh({{"origin","float",3}},origins,nil,'static')
+    instancemesh=love.graphics.newMesh({{"a_origin","float",3}},origins,nil,'static')
+    myMesh:attachAttribute("a_origin",instancemesh,"perinstance")
+    local scale=3
+    for i=1,myMesh:getVertexCount()do
+        myMesh:setVertexAttribute(i,5,-scale,scale,scale)
+    end
+    for i=1,myline:getVertexCount()do
+        myline:setVertexAttribute(i,5,1,1,1) --scale
+        myline:setVertexAttribute(i,4,0,0,30) --orign
+    end
 end
 function love.resize(w,h)
     -- spire.content=rectsize(0,0,w,h)
