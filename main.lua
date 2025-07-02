@@ -106,8 +106,8 @@ end
 function love.load()
     -- love.graphics.setMeshCullMode('back')
     love.graphics.setDepthMode("less",true)
-    local f_name = 'model/dice_uv.glb'
-    -- f_name = 'model/dice.glb'
+    local f_name = 'model/sphere.glb'
+    -- f_name = 'model/dice_uv.glb'
     -- local f_name = 'model/torch.glb'
     -- local f_name = 'model/test_color.glb'
     -- local f_name = 'model/test.glb'
@@ -118,43 +118,48 @@ function love.load()
     print('load')
     myShader=love.graphics.newShader("shader/hi.glsl")
     myImage=love.graphics.newImage("th.jpg")
-    local vertex_format={
-        {"VertexPosition","float",3},
-        {"VertexColor","float",3},
-        {"VertexTexCoord","float",2},
+    local additional_attribute={
         {"a_origin","float",3},
         {"a_scale","float",3}
     }
+    local vf = {}
+    for i,attr in ipairs(model.vertex_format) do
+        -- position,texcoord,normal,color
+        table.insert(vf,attr)
+    end
+    for i,attr in ipairs(additional_attribute) do
+        table.insert(vf,attr)
+    end
     local z=40
     local vertex={
-        { 0, 0,  0,   0.5, 1, 1 },
-        { 0,  0,  z,   1, 0, 0 },
-        { 0,  -1, z, 1, 0, 0},
-        { 0,  -1, 0, 0.5, 1, 1},
+        { 0, 0,  0, },
+        { 0, 0,  z, },
+        { 0, -1, z, },
+        { 0, -1, 0, },
     }
-    myMesh=love.graphics.newMesh(vertex_format,model.vertex,"triangles")
-    myline=love.graphics.newMesh(vertex_format,vertex,'triangles')
+    myMesh=love.graphics.newMesh(vf,model.vertices,"triangles")
+    myline=love.graphics.newMesh(vf,vertex,'triangles')
     myline:setVertexMap(1,3,2,1,4,3)
-    -- myMesh=love.graphics.newMesh(vertex_format,vert,"triangles")
     myMesh:setTexture(model.images[1])
     myMesh:setVertexMap(model.index)
-    -- myMesh:setVertexMap(8,9,10,8,11,10)
     -- timer.oneshot(function (t)
     --     print(t,'oneshot')
     -- end,1000)
-    -- local w,h,_=love.window.getMode()
-    -- love.mouse.setPosition(w/2,h/2)
-    -- pen.size=Vec(200,200)
-    -- pen:push(Shape.Line(pen.center,Vec(100,100)))
+    
     instancemesh=love.graphics.newMesh({{"a_origin","float",3}},origins,nil,'static')
     myMesh:attachAttribute("a_origin",instancemesh,"perinstance")
-    local scale=3
-    for i=1,myMesh:getVertexCount()do
-        myMesh:setVertexAttribute(i,5,-scale,scale,scale)
+    local color ={}
+    for i=1,#origins do
+        table.insert(color,{1,1,1})
+    end
+    local scale=5
+    for i = 1, myMesh:getVertexCount() do
+        myMesh:setVertexAttribute(i,#vf,-scale,scale,scale)
+        --myMesh:setVertexAttribute(i,4,1,1,1) --vertexcolor
     end
     for i=1,myline:getVertexCount()do
-        myline:setVertexAttribute(i,5,1,1,1) --scale
-        myline:setVertexAttribute(i,4,0,0,30) --orign
+        myline:setVertexAttribute(i,#vf,1,1,1) --scale
+        myline:setVertexAttribute(i,#vf-1,0,0,30) --orign
     end
 end
 function love.resize(w,h)

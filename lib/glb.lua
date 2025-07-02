@@ -39,7 +39,7 @@ function glb.read(file_name)
     data_type = f:read(4)
     local bin_content = f:read(data_length)
     print(data_type, data_length)
-    local vertex = {}
+    local vertices = {}
     local indexs = {}
     local images = {}
     for i,image in ipairs(json_data.images or {})do
@@ -53,59 +53,55 @@ function glb.read(file_name)
     end
     local new_index_start=0
     for mesh_id,mesh in ipairs(json_data.meshes) do
-        for a,p in ipairs(mesh.primitives) do
-            
-            local accessor = json_data.accessors[p.attributes.POSITION+1]
+        for primitive_id,p in ipairs(mesh.primitives) do
+            for attr_id,attribute in ipairs{"POSITION","TEXCOORD_0","NORMAL"} do
+                local accessor = json_data.accessors[p.attributes[attribute] + 1]
+                local bufferview = json_data.bufferViews[accessor.bufferView + 1]
+                local offset = bufferview.byteOffset
+                local data_size = accessor.type:match("%d+") or 1 -- component number
+                local byte_len = BYTE_LEN[accessor.componentType]
+                for i = 1, accessor.count do
+                    if not vertices[i] then
+                        vertices[i] = {}
+                    end
+                    for d=1,data_size do
+                        local index=  i * data_size - data_size + d - 1
+                        local start = index * byte_len + 1 + offset
+                        local float_number = read_float({ bin_content:byte(start, start + byte_len) })
+                        table.insert(vertices[i], float_number)
+                    end
+                end
+            end
+
+            local material = json_data.materials[p.material + 1]
+            local color = material.pbrMetallicRoughness.baseColorFactor or { 1, 1, 1, 1 }
+            for i=new_index_start+1,#vertices do
+                for c =1,3 do
+                    table.insert(vertices[i],color[c])
+                end
+            end
+
+            local accessor = json_data.accessors[p.indices+1]
             local bufferview = json_data.bufferViews[accessor.bufferView + 1]
             local offset = bufferview.byteOffset
-            local v = {}
-            local material = json_data.materials[a]
-            local color = material.pbrMetallicRoughness.baseColorFactor or {1,1,1,1}
-            local data_size = accessor.type:match("%d+") or 1 -- component number
+            local data_size = accessor.type:match("%d+") or 1
             local byte_len = BYTE_LEN[accessor.componentType]
-            for i = 1, accessor.count * data_size do
-                local start = i * byte_len - byte_len + 1 + offset
-                local float_number = read_float({ bin_content:byte(start, start + byte_len) })
-                table.insert(v, float_number)
-                if i % 3 == 0 then
-                    for c = 1, 3 do
-                        table.insert(v, color[c])
-                    end
-                    table.insert(vertex, v)
-                    v = {}
-                end
-            end
-            accessor = json_data.accessors[p.attributes.TEXCOORD_0+1]
-            bufferview = json_data.bufferViews[accessor.bufferView + 1]
-            offset = bufferview.byteOffset
-            local uv={}
-            data_size = accessor.type:match("%d+") or 1
-            for i=1,accessor.count*data_size do
-                local float_numer = read_float({ bin_content:byte(-3 + i * 4 + offset, i * 4 + offset) })
-                table.insert(uv,float_numer)
-                if i%2==0 then
-                    local vertex_index=i/2
-                    for u=1,2 do
-                        table.insert(vertex[vertex_index],uv[u])
-                    end
-                    uv={}
-                end
-            end
-            accessor = json_data.accessors[p.indices+1]
-            bufferview = json_data.bufferViews[accessor.bufferView + 1]
-            offset = bufferview.byteOffset
-            data_size = accessor.type:match("%d+") or 1
-            byte_len = BYTE_LEN[accessor.componentType]
             for i = 1, accessor.count*data_size do
                 local start = i * byte_len - byte_len + 1 + offset
                 local u16 = read_uint16({ bin_content:byte(start, start+byte_len) })
                 table.insert(indexs, u16 + 1 + new_index_start)
             end
-            new_index_start = #vertex
+            new_index_start = #vertices
         end
     end
-    glb_data.vertex=vertex
+    glb_data.vertices=vertices
     glb_data.index = indexs
+    glb_data.vertex_format={
+        {"VertexPosition","float",3},
+        {"VertexTexCoord","float",2},
+        {"a_normal","float",3},
+        {"VertexColor","float",3},
+    }
     glb_data.json=json_data
     glb_data.images=images
     return glb_data

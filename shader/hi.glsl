@@ -13,12 +13,14 @@ float A=0;
 float screen_size=200; //screen width
 
 varying vec4 v_color;
-varying float v_visible;
+varying float v_depth;
+varying vec3 v_normal;
 
 #ifdef VERTEX
 attribute vec3 a_origin;
 attribute vec3 a_scale;
 attribute vec3 a_rotation;
+attribute vec3 a_normal;
 vec4 position(mat4 transform_project, vec4 vertex_position){
 
     mat4 scalate=mat4(
@@ -42,8 +44,11 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
         -sin(y_rot),sin(x_rot),cos(y_rot)*cos(x_rot),0,
         0,0,0,1
     );
-    vec4 pos_world=tranlate*rotate*scalate*vertex_position; // world coord
+    mat4 self_transform = tranlate*rotate*scalate;
+    vec4 pos_world=self_transform*vertex_position; // world coord
 
+    vec4 nor=rotate*scalate*vec4(a_normal,1);
+    v_normal=normalize(nor.xyz);
     mat4 camera_t=mat4(
         1,0,0,0,
         0,1,0,0,
@@ -59,7 +64,7 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
         -sin(cam_y_r),  sin(cam_x_r),   cos(cam_x_r)*cos(cam_y_r),0,
         0,              0,              0,1
     );
-    vec4 pos= inverse(camera_t*camera_rot)*pos_world;
+    vec4 pos= inverse(camera_t*camera_rot)*pos_world; // pos in camera coordinate
     // float cos_angle_to_cam=pos.z/length(pos.xyz);
     float dist=abs(pos.z);
     pos.x/=dist;
@@ -77,7 +82,7 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
     z=z/(far-near)*2-1;
     pos.z=z;
     float v = pos.z;
-    v_color.z=v;
+    v_depth=v;
     return pos;
 }
 #endif
@@ -88,6 +93,10 @@ vec4 effect(vec4 color, Image texture_,vec2 texture_coords,vec2 screen_coords){
     vec4 pixel= Texel(texture_,texture_coords);
     // pixel.r=VaryingColor.r;
     pixel*=VaryingColor;
+    vec3 light = 1.5*normalize(vec3(sin(Time),1,cos(Time)));
+    pixel.rgb=pixel.rgb*dot(v_normal,light);
+    // float dist =(1+v_depth)/2; 
+    // pixel.a=1-dist*dist;
     // pixel.b=1-v_color.z;
     return pixel;
 }
