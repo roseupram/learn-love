@@ -2,12 +2,36 @@
 -- draw everything
 -- normal coordinate [-1,1]
 -- manage drawing, coloring, font
+local prototype=require('prototype')
 local Color=require('color')
 local Vec=require('vec')
 local Pen={}
 local Fonts={}
 local Imgs={}
 local Sounds={}
+
+local scene = prototype { name = "scene", x = 0, y = 0, width = 100, height = 100 }
+function scene:new(x,y,w,h)
+    if type(x)=="table" then
+        self.x=x.x
+        self.y=x.y
+        self.width=x.width
+        self.height=x.height
+    else
+        self.x = x
+        self.y = y
+        self.width = w
+        self.height = h
+    end
+    x,y,w,h=self:get_xywh()
+end
+function scene:get_xywh()
+    local Width,Height= love.graphics.getDimensions()
+    local x, y, w, h = self.x / 100 * Width, self.y / 100 * Height, self.width / 100 * Width, self.height / 100 * Height
+    return x,y,w,h
+end
+Pen.scene=scene
+
 function Pen.bezier(bezier)
     love.graphics.setColor(1, 1, 1)
     love.graphics.setLineWidth(4)
