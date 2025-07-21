@@ -6,7 +6,7 @@ local Shape = require("shape")
 local Color=Shape.Color
 local Array=require('array')
 local FP=require('FP')
-local timer=require('timer')
+local timer=require('timer')()
 local scene=require('scene')
 
 
@@ -16,7 +16,6 @@ local container=scene{
     width = 100,
     height = 80
 }
-local pos=Vec(400,400)
 function love.draw()
     local bg_color = {0.,0.,0.}
     love.graphics.clear(table.unpack(bg_color))
@@ -25,16 +24,14 @@ end
 --- see https://www.love2d.org/wiki/love.run
 --- after update, call origin,clear,draw
 function love.update(dt)
-    timer.update(dt)
+    timer:update(dt)
     container:update(dt)
-    local x,y = love.mouse.getPosition()
-    if love.mouse.isDown(1) then
-        pos = Vec(x, y)
-    end
-    local time = love.timer.getTime()
 end
 
 function love.load()
+    timer:oneshot(function (self,elapsed)
+        print(string.format("%.3f s elasped",elapsed))
+    end,2000)
 
     local font =love.graphics.newFont(18)
     love.graphics.setFont(font)

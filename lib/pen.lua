@@ -24,11 +24,26 @@ function scene:new(x,y,w,h)
         self.height = h
     end
     x,y,w,h=self:get_xywh()
+    self.children={}
 end
 function scene:get_xywh()
     local Width,Height= love.graphics.getDimensions()
     local x, y, w, h = self.x / 100 * Width, self.y / 100 * Height, self.width / 100 * Width, self.height / 100 * Height
     return x,y,w,h
+end
+function scene:push(child)
+    table.insert(self.children,child)
+end
+---return normal pos if mouse_in
+---@return Vec2|nil
+function scene:mouse_in()
+    local x, y = love.mouse.getPosition()
+    local ox, oy, w, h = self:get_xywh()
+    x, y = x - ox, y - oy
+    local inside = x > 0 and x < w and y > 0 and y < h
+    if(inside)then
+        return Vec(x, y)/Vec(w,h)*100
+    end
 end
 Pen.scene=scene
 
