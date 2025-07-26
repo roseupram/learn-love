@@ -14,7 +14,7 @@ local myImage
 local container=scene{
     y=10,
     width = 100,
-    height = 80
+    height = 90
 }
 function love.draw()
     local bg_color = {0.,0.,0.}

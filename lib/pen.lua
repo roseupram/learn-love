@@ -10,42 +10,132 @@ local Fonts={}
 local Imgs={}
 local Sounds={}
 
-local scene = prototype { name = "scene", x = 0, y = 0, width = 100, height = 100 }
-function scene:new(x,y,w,h)
+---@class Scene
+---@field super function
+local scene = prototype { name = "scene", x = 0, y = 0, width = 100, height = 100,wh_ratio=1 }
+function scene:new(x,y,w,h,wh_ratio)
     if type(x)=="table" then
         self.x=x.x
         self.y=x.y
         self.width=x.width
         self.height=x.height
+        self.wh_ratio=x.wh_ratio
+        self.name=x.name
+        self:merge(x)
     else
         self.x = x
         self.y = y
         self.width = w
         self.height = h
+        self.wh_ratio=wh_ratio
     end
+    self.center=Vec(self.x,self.y)
     x,y,w,h=self:get_xywh()
     self.children={}
+    self.debug=false
 end
+---return x,y,w,h in parent space
+---@return number
+---@return number
+---@return number
+---@return number
 function scene:get_xywh()
-    local Width,Height= love.graphics.getDimensions()
+    local Width,Height
+    if self.parent then
+        _,_,Width, Height = self.parent:get_xywh()
+    else
+        Width, Height = love.graphics.getDimensions()
+    end
     local x, y, w, h = self.x / 100 * Width, self.y / 100 * Height, self.width / 100 * Width, self.height / 100 * Height
+    if rawget(self,'wh_ratio') then
+        if not rawget(self, 'height') then
+            h = w / self.wh_ratio
+        elseif not rawget(self, 'width') then
+            w = h * self.wh_ratio
+        end
+    end
     return x,y,w,h
 end
 function scene:push(child)
     table.insert(self.children,child)
+    child.parent=self
 end
 ---return normal pos if mouse_in
----@return Vec2|nil
+---@return Vec2|nil relative to self leftup in percentage
 function scene:mouse_in()
     local x, y = love.mouse.getPosition()
-    local ox, oy, w, h = self:get_xywh()
-    x, y = x - ox, y - oy
+    local px, py = 0, 0
+    if self.parent then
+        local inside = self.parent:mouse_in()
+        if not inside then
+            return nil
+        end
+        -- print("inside parent",self.parent.name,love.timer.getTime())
+        px,py,pw,ph=self.parent:get_xywh()
+        x, y = (inside * Vec(pw, ph)/100):unpack() -- relative to parent leftup
+    end
+    local ox, oy, w, h = self:get_xywh()           --relative to parent leftup
+    x, y = x - ox , y - oy
     local inside = x > 0 and x < w and y > 0 and y < h
-    if(inside)then
+    if (inside) then
         return Vec(x, y)/Vec(w,h)*100
     end
 end
-Pen.scene=scene
+function scene:draw()
+    love.graphics.push('all')
+    local x, y, w, h =self:get_xywh()
+    if self.debug then
+        love.graphics.rectangle('line', x, y, w, h)
+    end
+    local to_screen = Vec(w,h)/100
+    love.graphics.translate(x,y)
+    for i,child in ipairs(self.children) do
+        if(child.draw) then
+            local normal_center=child.center
+            child.center=child.center*to_screen
+            child:draw()
+            child.center=normal_center
+        end
+    end
+    love.graphics.pop()
+end
+Pen.Scene=scene
+local Button=scene{name="Button"}
+function Button:new(ops)
+    Button.super(self,ops)
+end
+Pen.Button=Button
+
+---@class Image:Scene
+local Image=scene{name="Image"}
+function Image:new(ops)
+    Image.super(self,ops)
+    self.image=Pen.get_img(ops.path)
+end
+function Image:draw()
+    local x,y,w,h=self:get_xywh()
+    local scale_w=w/self.image:getWidth()
+    local scale_h=h/self.image:getHeight()
+    love.graphics.draw(self.image,x,y,0,scale_w,scale_h)
+end
+Pen.Image=Image
+
+---@class Text:Scene
+---@field text string
+local Text=scene{name="Text",size=18}
+function Text:new(ops)
+    Text.super(self,ops)
+    self.size=ops.size
+    local font = Pen.get_font(self.size)
+    self.content=ops.text
+    self.text=love.graphics.newText(font,ops.text)
+end
+function Text:draw()
+    local x,y,w,h=self:get_xywh()
+    self.text:setf(self.content,w,'center')
+    love.graphics.draw(self.text,x,y)
+end
+Pen.Text=Text
 
 function Pen.bezier(bezier)
     love.graphics.setColor(1, 1, 1)

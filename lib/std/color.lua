@@ -17,7 +17,7 @@ function Color:new(r,g,b,a)
     self.b=b
     self.a=a
 end
-function Color:table()
+function Color:unpack()
     return {self.r,self.g,self.b,self.a}
 end
 return Color
