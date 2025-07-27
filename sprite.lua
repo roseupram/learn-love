@@ -26,7 +26,7 @@ function Sprite:new(ops)
             if(color.a<.5 && neighbor.a>0){
                 color=vec4(c,c,c,1);
             }
-            return color;
+            return color*base_color;
         }
     ]])
 end
@@ -35,8 +35,9 @@ function Sprite:draw()
     love.graphics.push('all')
     love.graphics.setColor(self.color:unpack())
     local x,y=self.center:unpack()
-    love.graphics.setColor(.3,.4,.8)
-    love.graphics.ellipse('fill',x,y+self.height/2-10,self.width/3,self.height/5)
+    love.graphics.setLineWidth(3)
+    love.graphics.setColor(.3,.9,.9)
+    love.graphics.ellipse('line',x,y+self.height/2-10,self.width/3,self.height/5)
     -- print(x,y)
     love.graphics.setColor(1,1,1)
     local sclae=self.width/self.iw

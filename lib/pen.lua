@@ -39,7 +39,8 @@ end
 ---@return number
 ---@return number
 ---@return number
-function scene:get_xywh()
+function scene:get_xywh(is_global)
+    ---TODO make it in global space
     local Width,Height
     if self.parent then
         _,_,Width, Height = self.parent:get_xywh()
@@ -100,6 +101,8 @@ function scene:draw()
     love.graphics.pop()
 end
 Pen.Scene=scene
+
+---@class Button:Scene  
 local Button=scene{name="Button"}
 function Button:new(ops)
     Button.super(self,ops)
@@ -136,6 +139,21 @@ function Text:draw()
     love.graphics.draw(self.text,x,y)
 end
 Pen.Text=Text
+
+---@class Rect:Scene
+local Rect=scene{name="Rect",color=Color(1,1,1)}
+function Rect:new(ops)
+    Rect.super(self,ops)
+    self.color=ops.color and ops.color:clone()
+end
+function Rect:draw()
+    local x,y,w,h=self:get_xywh()
+    love.graphics.push('all')
+    love.graphics.setColor(self.color:unpack())
+    love.graphics.rectangle('fill',x,y,w,h)
+    love.graphics.pop()
+end
+Pen.Rect=Rect
 
 function Pen.bezier(bezier)
     love.graphics.setColor(1, 1, 1)

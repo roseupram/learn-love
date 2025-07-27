@@ -1,5 +1,6 @@
 local prototype=require('prototype')
 local Vec=require('vec')
+local Color=require('color')
 local sprite = require('sprite')
 local pen=require("pen")
 local sc1=pen.Scene()
@@ -10,15 +11,21 @@ function sc1:new(t)
     self.enemy = sprite{img_path="images/enemy.png",width=w*.2,center=Vec(60,40)}
     self:push(self.enemy)
     self:push(self.player)
-    local botttom_bar = pen.Scene{x=0,y=85,height=15,width=100}
+    local botttom_bar = pen.Scene{x=0,y=80,height=20,width=100}
     botttom_bar.debug=true
     botttom_bar.name="bottom bar"
     self:push(botttom_bar)
     self.button = pen.Button{x=10,y=0,height=100,wh_ratio=2/3}
+    botttom_bar:push(self.button)
+
     local img = pen.Image{path="images/attack.png",width=100,wh_ratio=1}
-    local text = pen.Text{text="ASDFGHJKL;",y=1.6*100/3}
+    local text = pen.Text{text="Punch\n(A)",y=2*100/3}
+    local rect1 = pen.Rect{color=Color(.2,.2,.4),width=100,wh_ratio=1}
+    local rect = pen.Rect{color=Color(.4,.4,.8),y=text.y}
     self.button.image = img
     self.button.text=text
+    self.button:push(rect1)
+    self.button:push(rect)
     self.button:push(img)
     self.button:push(text)
     self.button.color={1,1,1}
@@ -35,7 +42,6 @@ function sc1:new(t)
         end
         love.graphics.pop()
     end
-    botttom_bar:push(self.button)
     local mesh_vertices ={
         {100,100,0,0,1,0,0},
         {200,100,1,0,1,0,0},
@@ -67,6 +73,25 @@ function sc1:new(t)
     self.music:setLooping(true)
     print("volume",self.music:getVolume())
     self.music:setVolume(.1)
+    self.bezier = love.math.newBezierCurve({100,100,184,100,230,200,100,240,
+    100,130,100,100
+})
+    local canvas = love.graphics.newCanvas(20,20)
+    love.graphics.setCanvas(canvas)
+    love.graphics.rectangle('fill',0,0,20,20)
+    love.graphics.setCanvas()
+    self.canvas=canvas
+    local psystem = love.graphics.newParticleSystem(canvas,128)
+    psystem:setParticleLifetime(2,5)
+    psystem:setEmissionRate(20)
+    psystem:setSizeVariation(1)
+    psystem:setSpin(-1,1)
+    psystem:setSpeed(10,30)
+    psystem:setDirection(-1.5)
+    psystem:setSizes(1,0)
+    psystem:setLinearAcceleration(-10,-2,10,0)
+    psystem:setColors(1,1,.2,1,1,1,1,0)
+    self.psystem=psystem
     -- self.music:play()
 end
 function sc1:draw()
@@ -78,7 +103,7 @@ function sc1:draw()
     love.graphics.rectangle('fill', x,y,w,h)
     love.graphics.pop()
 
-    love.graphics.push()
+    love.graphics.push('all')
     love.graphics.translate(x,y)
     love.graphics.print(string.format("FPS: %i",love.timer.getFPS()), 10, 10)
     love.graphics.stencil(function ()
@@ -96,11 +121,17 @@ function sc1:draw()
     love.graphics.setShader(self.shader)
     love.graphics.draw(self.mesh)
     love.graphics.setShader()
+
+    love.graphics.draw(self.psystem,w/2,h/2)   
+
+    local bx,by= self.bezier:evaluate(self.time%1)
+    love.graphics.line(self.bezier:render())
+    love.graphics.circle('fill',bx,by,4)
     love.graphics.setStencilTest()
     love.graphics.pop()
 end
 function sc1:update(dt)
-    
+    self.psystem:update(dt)
     local inside_pos = self:mouse_in()
    if inside_pos and love.mouse.isDown(1) then
    end
