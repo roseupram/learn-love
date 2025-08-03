@@ -12,6 +12,8 @@ local Sounds={}
 
 ---@class Scene
 ---@field super function
+---@field merge function    
+---@overload fun(...):Scene
 local scene = prototype { name = "scene", x = 0, y = 0, width = 100, height = 100,wh_ratio=1 }
 function scene:new(x,y,w,h,wh_ratio)
     if type(x)=="table" then
@@ -29,7 +31,6 @@ function scene:new(x,y,w,h,wh_ratio)
         self.height = h
         self.wh_ratio=wh_ratio
     end
-    self.center=Vec(self.x,self.y)
     x,y,w,h=self:get_xywh()
     self.children={}
     self.debug=false
@@ -47,6 +48,9 @@ function scene:get_xywh(is_global)
     else
         Width, Height = love.graphics.getDimensions()
     end
+    if self.bottom then
+        self.height=self.bottom-self.y
+    end
     local x, y, w, h = self.x / 100 * Width, self.y / 100 * Height, self.width / 100 * Width, self.height / 100 * Height
     if rawget(self,'wh_ratio') then
         if not rawget(self, 'height') then
@@ -57,9 +61,16 @@ function scene:get_xywh(is_global)
     end
     return x,y,w,h
 end
-function scene:push(child)
+function scene:push(child,name)
     table.insert(self.children,child)
+    if(name)then
+        self.children[name] = child
+    end
     child.parent=self
+end
+function scene:get(child_name)
+    assert(self.children[child_name],string.format("no child is %s",child_name))
+    return self.children[child_name]
 end
 ---return normal pos if mouse_in
 ---@return Vec2|nil relative to self leftup in percentage
@@ -92,14 +103,13 @@ function scene:draw()
     love.graphics.translate(x,y)
     for i,child in ipairs(self.children) do
         if(child.draw) then
-            local normal_center=child.center
-            child.center=child.center*to_screen
             child:draw()
-            child.center=normal_center
         end
     end
     love.graphics.pop()
 end
+function scene:keypressed() end
+function scene:mousepressed() end
 Pen.Scene=scene
 
 ---@class Button:Scene  
@@ -110,16 +120,23 @@ end
 Pen.Button=Button
 
 ---@class Image:Scene
-local Image=scene{name="Image"}
+local Image=scene{name="Image",anchor=Vec(50,50)}
 function Image:new(ops)
     Image.super(self,ops)
     self.image=Pen.get_img(ops.path)
+    self.anchor=ops.anchor
 end
 function Image:draw()
     local x,y,w,h=self:get_xywh()
     local scale_w=w/self.image:getWidth()
     local scale_h=h/self.image:getHeight()
     love.graphics.draw(self.image,x,y,0,scale_w,scale_h)
+end
+---in parent screen space
+---@return Vec2
+function Image:get_anchor()
+    local x,y,w,h=self:get_xywh()
+    return Vec(x,y)+Vec(w,h)*self.anchor/100
 end
 Pen.Image=Image
 
@@ -141,7 +158,8 @@ end
 Pen.Text=Text
 
 ---@class Rect:Scene
-local Rect=scene{name="Rect",color=Color(1,1,1)}
+local Rect=scene{name="Rect",color=Color(1,1,1),
+    x = 0, y = 0, width = 100, height = 100 }
 function Rect:new(ops)
     Rect.super(self,ops)
     self.color=ops.color and ops.color:clone()
@@ -154,34 +172,28 @@ function Rect:draw()
     love.graphics.pop()
 end
 Pen.Rect=Rect
-
-function Pen.bezier(bezier)
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.setLineWidth(4)
-    love.graphics.line(bezier:render())
+---@class Line:Scene
+local Line=scene{name="Line",points={},width=4,color=Color(1,1,1)}
+function Line:new(ops)
+    Line.super(self,ops)
+    self.points=ops.points --{x,y,x,y}
+    self.color=ops.color
 end
-function Pen.draw_element(config)
-    if not config then
-        return
+function Line:draw()
+    love.graphics.push('all')
+    love.graphics.setLineWidth(self.width)
+    love.graphics.setColor(self.color:unpack())
+    local points=self.points
+    if(#points==0) then
+        error("no points")
+    elseif (#points%2==1) then
+        error("wrong points size")
     end
-
-    if config.element.draw then
-        config.element:draw(config)
-        return
-    end
-
-    if config.border_radius then
-        Pen.round_rect(config)
-    else
-        Pen.rect(config)
-    end
-    if config.img then
-       Pen.img(config) 
-    end
-    if config.text then
-        Pen.text(config)
-    end
+    love.graphics.line(points)
+    love.graphics.pop()
 end
+Pen.Line=Line
+
 ---comment
 ---@param config table {border,border_radius,x,y,width,height}
 function Pen.round_rect(config)

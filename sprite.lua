@@ -1,15 +1,14 @@
 local Vec = require('vec')
-local prototype=require('prototype')
 local pen=require('pen')
 local Color=require('color')
-local timer=require('timer')
----@class Sprite
----@field center Vec2
-local Sprite =prototype{name='Sprite',center=Vec()}
+
+---@class Sprite:Scene
+local Sprite =pen.Scene{name="Sprite"}
 
 function Sprite:new(ops)
+    Sprite.super(self,ops)
     self.center=ops.center
-    self.img_path=ops.img_path or 'assets/me.png'
+    self.img_path=ops.img_path
     self.img=love.graphics.newImage(self.img_path)
     self.iw,self.ih=self.img:getWidth(),self.img:getHeight()
     self.width=ops.width  or self.iw

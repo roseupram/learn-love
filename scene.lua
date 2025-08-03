@@ -3,45 +3,34 @@ local Vec=require('vec')
 local Color=require('color')
 local sprite = require('sprite')
 local pen=require("pen")
-local sc1=pen.Scene()
+---@class sc1:Scene
+local sc1=pen.Scene{name="sc1"}
 function sc1:new(t)
     sc1.super(self,t)
-    local x,y,w,h=self:get_xywh()
-    self.player = sprite{img_path = "images/player.png",width=w*.2,center=Vec(30,20)}
-    self.enemy = sprite{img_path="images/enemy.png",width=w*.2,center=Vec(60,40)}
-    self:push(self.enemy)
-    self:push(self.player)
-    local botttom_bar = pen.Scene{x=0,y=80,height=20,width=100}
-    botttom_bar.debug=true
-    botttom_bar.name="bottom bar"
-    self:push(botttom_bar)
-    self.button = pen.Button{x=10,y=0,height=100,wh_ratio=2/3}
+    local bg_color=Color(.77,.7,.65)
+    local bg = pen.Rect{x=0,y=0,width=100,height=100,color=bg_color}
+    self:push(bg)
+    local player = pen.Image{path="images/player.png",height=20,x=40,y=38,wh_ratio=1,anchor=Vec(50,90)}
+    local enemy = pen.Image{path="images/enemy.png",height=20,x=80,y=20,wh_ratio=1}
+    
+    local arrow = pen.Line{points={300,200,300,400},color=Color(.2,.7,.9,.7),width=10}
+    self:push(enemy,"enemy")
+    self:push(arrow,"arrow")
+    self:push(player,"player")
+    local botttom_bar = pen.Scene{x=30,y=80,bottom=100,width=40,name="bottom bar"}
+    self:push(botttom_bar,"bottom_bar")
+    self.button = pen.Button{x=4,y=0,height=100,wh_ratio=2/3}
+    botttom_bar:push(pen.Rect{color=Color(.8,.4,.6)})
     botttom_bar:push(self.button)
 
     local img = pen.Image{path="images/attack.png",width=100,wh_ratio=1}
     local text = pen.Text{text="Punch\n(A)",y=2*100/3}
     local rect1 = pen.Rect{color=Color(.2,.2,.4),width=100,wh_ratio=1}
-    local rect = pen.Rect{color=Color(.4,.4,.8),y=text.y}
-    self.button.image = img
-    self.button.text=text
-    self.button:push(rect1)
+    local rect = pen.Rect{color=Color(.4,.4,.8),y=text.y,bottom=100}
+    self.button:push(rect1,"bg")
     self.button:push(rect)
-    self.button:push(img)
-    self.button:push(text)
-    self.button.color={1,1,1}
-    self.button.draw=function (self)
-        local x,y,w,h=self:get_xywh()
-        love.graphics.push('all')
-        love.graphics.translate(x,y)
-        -- love.graphics.setShader(self.shader)
-        love.graphics.setColor(table.unpack(self.color))
-        love.graphics.rectangle("line",0,0,w,h)
-        love.graphics.setColor(1,1,1)
-        for i,child in ipairs(self.children) do
-            child:draw()
-        end
-        love.graphics.pop()
-    end
+    self.button:push(img,"img")
+    self.button:push(text,"text")
     local mesh_vertices ={
         {100,100,0,0,1,0,0},
         {200,100,1,0,1,0,0},
@@ -78,31 +67,30 @@ function sc1:new(t)
 })
     local canvas = love.graphics.newCanvas(20,20)
     love.graphics.setCanvas(canvas)
-    love.graphics.rectangle('fill',0,0,20,20)
+    love.graphics.rectangle('fill',5,0,10,20)
+    love.graphics.circle('fill',10,10,8)
     love.graphics.setCanvas()
     self.canvas=canvas
+    -- use draw instance to make particle
     local psystem = love.graphics.newParticleSystem(canvas,128)
-    psystem:setParticleLifetime(2,5)
-    psystem:setEmissionRate(20)
-    psystem:setSizeVariation(1)
+    psystem:setParticleLifetime(2,6)
+    psystem:setEmissionRate(30)
+    psystem:setSizeVariation(.3)
     psystem:setSpin(-1,1)
-    psystem:setSpeed(10,30)
+    psystem:setSpeed(0,20)
     psystem:setDirection(-1.5)
-    psystem:setSizes(1,0)
-    psystem:setLinearAcceleration(-10,-2,10,0)
-    psystem:setColors(1,1,.2,1,1,1,1,0)
+    psystem:setSizes(.5,1,1.2,.6,.0)
+    psystem:setLinearAcceleration(0,-5,0,0)
+    psystem:setInsertMode('random')
+    psystem:setEmissionArea('normal',10,2)
+    psystem:setRadialAcceleration(-1,1)
+    psystem:setColors(1, .6, .2, .7,
+        1, 0, 0, .2)
     self.psystem=psystem
     -- self.music:play()
 end
 function sc1:draw()
-    love.graphics.push('all')
-    local Width,Height= love.graphics.getDimensions()
     local x, y, w, h =self:get_xywh()
-    local to_screen = Vec(w,h)/100
-    love.graphics.setColor(1,.2,.4)
-    love.graphics.rectangle('fill', x,y,w,h)
-    love.graphics.pop()
-
     love.graphics.push('all')
     love.graphics.translate(x,y)
     love.graphics.print(string.format("FPS: %i",love.timer.getFPS()), 10, 10)
@@ -112,17 +100,14 @@ function sc1:draw()
     love.graphics.setStencilTest("greater",0)
     for i,child in ipairs(self.children) do
         if(child.draw) then
-            local normal_center=child.center
-            child.center=child.center*to_screen
             child:draw()
-            child.center=normal_center
         end
     end
     love.graphics.setShader(self.shader)
     love.graphics.draw(self.mesh)
     love.graphics.setShader()
 
-    love.graphics.draw(self.psystem,w/2,h/2)   
+    love.graphics.draw(self.psystem,w/5,h/2)
 
     local bx,by= self.bezier:evaluate(self.time%1)
     love.graphics.line(self.bezier:render())
@@ -131,16 +116,67 @@ function sc1:draw()
     love.graphics.pop()
 end
 function sc1:update(dt)
+    self.psystem:moveTo(5*math.sin(10*self.time),0)
     self.psystem:update(dt)
     local inside_pos = self:mouse_in()
-   if inside_pos and love.mouse.isDown(1) then
+    local _,_,w,h=self:get_xywh()
+
+    local arrow = self:get("arrow")
+    local player =self:get('player')
+    local px,py,pw,ph=player:get_xywh()
+    local to_screen=Vec(w,h)/100
+    local target
+    local base =player:get_anchor()
+    local offset=base-Vec(px,py)
+    if inside_pos then
+        target=inside_pos*to_screen
+        local max_len = .2*w
+        local direction =target - base
+        if direction:len() > max_len then
+            target =base + direction:normal() * max_len
+        end
+    end
+    if self.cmd and target then
+        local normal_space = (target-offset) / to_screen
+        player.x = normal_space.x
+        player.y = normal_space.y
+        self.cmd = false
+    end
+
+    arrow.points[1] = base.x
+    arrow.points[2] = base.y
+    
+    local button_bg = self.button:get('bg')
+    if not self.punch then
+        arrow.points[3] = arrow.points[1]
+        arrow.points[4] = arrow.points[2]
+        button_bg.color.g = .2
+    end
+   if target and self.punch then
+    arrow.points[3]=target.x
+    arrow.points[4]=target.y
+        button_bg.color.g = .6
    end
-   if(self.button:mouse_in()) then
-    self.button.color[3]=.4
-   else
-    self.button.color[3]=1
-   end
+
    self.time=self.time+dt
    self.shader:send("time",self.time)
+end
+function sc1:keypressed(key)
+
+    if key=='a' and self:mouse_in() then
+        self.punch=true
+    end
+end
+function sc1:mousepressed(x,y,button,istouch,times)
+    if not self:mouse_in() then
+        return
+    end
+    if button==2 then
+        self.punch=false
+    end
+    if button==1 and self.punch then
+        self.cmd=true
+        self.punch=false
+    end
 end
 return sc1
