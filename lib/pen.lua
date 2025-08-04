@@ -13,6 +13,7 @@ local Sounds={}
 ---@class Scene
 ---@field super function
 ---@field merge function    
+---@field parent Scene|nil
 ---@overload fun(...):Scene
 local scene = prototype { name = "scene", x = 0, y = 0, width = 100, height = 100,wh_ratio=1 }
 function scene:new(x,y,w,h,wh_ratio)
@@ -31,7 +32,7 @@ function scene:new(x,y,w,h,wh_ratio)
         self.height = h
         self.wh_ratio=wh_ratio
     end
-    x,y,w,h=self:get_xywh()
+    x,y,w,h=self:xywh()
     self.children={}
     self.debug=false
 end
@@ -40,18 +41,33 @@ end
 ---@return number
 ---@return number
 ---@return number
-function scene:get_xywh(is_global)
+function scene:xywh()
     ---TODO make it in global space
+    local x, y = self:xy()
+    local w,h=self:wh()
+    return x,y,w,h
+end
+function scene:xy()
+    local px,py=0,0
+    if self.parent then
+        px,py,Width, Height = self.parent:xywh()
+    else
+        Width, Height = love.graphics.getDimensions()
+    end
+    local x, y = self.x / 100 * Width, self.y / 100 * Height
+    return x+px,y+py
+end
+function scene:wh()
     local Width,Height
     if self.parent then
-        _,_,Width, Height = self.parent:get_xywh()
+        _,_,Width, Height = self.parent:xywh()
     else
         Width, Height = love.graphics.getDimensions()
     end
     if self.bottom then
         self.height=self.bottom-self.y
     end
-    local x, y, w, h = self.x / 100 * Width, self.y / 100 * Height, self.width / 100 * Width, self.height / 100 * Height
+    local w, h = self.width / 100 * Width, self.height / 100 * Height
     if rawget(self,'wh_ratio') then
         if not rawget(self, 'height') then
             h = w / self.wh_ratio
@@ -59,7 +75,22 @@ function scene:get_xywh(is_global)
             w = h * self.wh_ratio
         end
     end
-    return x,y,w,h
+    return w,h
+end
+function scene:global(x,y)
+    if x==nil then
+        return self:xy()
+    end
+    local w, h
+    if self.parent then
+        local local_xy=Vec(x,y)-Vec(self.parent:xy())
+        x,y=local_xy:unpack()
+        w, h = self.parent:wh()
+    else
+        w, h = love.graphics.getDimensions()
+    end
+    self.x = x / w * 100
+    self.y = y / h * 100
 end
 function scene:push(child,name)
     table.insert(self.children,child)
@@ -75,32 +106,20 @@ end
 ---return normal pos if mouse_in
 ---@return Vec2|nil relative to self leftup in percentage
 function scene:mouse_in()
-    local x, y = love.mouse.getPosition()
-    local px, py = 0, 0
-    if self.parent then
-        local inside = self.parent:mouse_in()
-        if not inside then
-            return nil
-        end
-        -- print("inside parent",self.parent.name,love.timer.getTime())
-        px,py,pw,ph=self.parent:get_xywh()
-        x, y = (inside * Vec(pw, ph)/100):unpack() -- relative to parent leftup
-    end
-    local ox, oy, w, h = self:get_xywh()           --relative to parent leftup
-    x, y = x - ox , y - oy
+    local x, y ,w,h= self:xywh()
+    local mouse_pos= Vec(love.mouse.getPosition())
+    x, y = mouse_pos.x - x , mouse_pos.y - y
     local inside = x > 0 and x < w and y > 0 and y < h
     if (inside) then
-        return Vec(x, y)/Vec(w,h)*100
+        return Vec(x, y)
     end
 end
 function scene:draw()
     love.graphics.push('all')
-    local x, y, w, h =self:get_xywh()
+    local x, y, w, h =self:xywh()
     if self.debug then
         love.graphics.rectangle('line', x, y, w, h)
     end
-    local to_screen = Vec(w,h)/100
-    love.graphics.translate(x,y)
     for i,child in ipairs(self.children) do
         if(child.draw) then
             child:draw()
@@ -120,22 +139,24 @@ end
 Pen.Button=Button
 
 ---@class Image:Scene
-local Image=scene{name="Image",anchor=Vec(50,50)}
+local Image=scene{name="Image",anchor=Vec(0,0)}
 function Image:new(ops)
     Image.super(self,ops)
     self.image=Pen.get_img(ops.path)
     self.anchor=ops.anchor
+    self.scale=ops.scale or Vec(1,1)
 end
 function Image:draw()
-    local x,y,w,h=self:get_xywh()
-    local scale_w=w/self.image:getWidth()
-    local scale_h=h/self.image:getHeight()
-    love.graphics.draw(self.image,x,y,0,scale_w,scale_h)
+    local x,y,w,h=self:xywh()
+    local img_size = Vec(self.image:getWidth(),self.image:getHeight())
+    local scale=self.scale*Vec(w,h)/img_size
+    local origin = self.anchor*img_size/100
+    love.graphics.draw(self.image,x,y,0,scale.x,scale.y,origin.x,origin.y)
 end
 ---in parent screen space
 ---@return Vec2
 function Image:get_anchor()
-    local x,y,w,h=self:get_xywh()
+    local x,y,w,h=self:xywh()
     return Vec(x,y)+Vec(w,h)*self.anchor/100
 end
 Pen.Image=Image
@@ -151,7 +172,7 @@ function Text:new(ops)
     self.text=love.graphics.newText(font,ops.text)
 end
 function Text:draw()
-    local x,y,w,h=self:get_xywh()
+    local x,y,w,h=self:xywh()
     self.text:setf(self.content,w,'center')
     love.graphics.draw(self.text,x,y)
 end
@@ -165,7 +186,7 @@ function Rect:new(ops)
     self.color=ops.color and ops.color:clone()
 end
 function Rect:draw()
-    local x,y,w,h=self:get_xywh()
+    local x,y,w,h=self:xywh()
     love.graphics.push('all')
     love.graphics.setColor(self.color:unpack())
     love.graphics.rectangle('fill',x,y,w,h)
@@ -193,6 +214,56 @@ function Line:draw()
     love.graphics.pop()
 end
 Pen.Line=Line
+---@class Mesh:Scene
+---@field vertex table
+---@field mode 'fan'|'triangles'
+---@field usage 'dynamic'|'static'|'stream'
+---@field vertex_map table
+---@field rotate number
+local Mesh = scene { name = "Mesh",
+    mode = 'fan', usage = 'dynamic', vertex = {}, vertex_map = {},
+    anchor = Vec(0, 0), rotate = 0 }
+function Mesh:new(ops)
+    Mesh.super(self,ops)
+    self.mesh=love.graphics.newMesh(self.vertex,self.mode,self.usage)
+    self.mesh:setVertexMap(self.vertex_map)
+    if ops.texture then
+        self.mesh:setTexture(ops.texture)
+    end
+    self.anchor=self.anchor/100
+end
+function Mesh:draw()
+    local x,y,w,h=self:xywh()
+    love.graphics.draw(self.mesh,x,y,0,w,h,anchor.x,anchor.y)
+end
+Pen.Mesh=Mesh
+
+---@class Atlas:Scene
+local Atlas=scene{name="Atlas",grid_size=1}
+function Atlas:new(ops)
+    Atlas.super(self,ops)
+    self.grid_size = ops.grid_size
+    self.image=Pen.get_img(ops.path)
+end
+---comment
+---@param ops {x:number,y:number,width:number,height:number}
+function Atlas:get_mesh(ops)
+    local unit = Vec(self.image:getDimensions()):invert() * self.grid_size
+    local leftup = Vec(ops.x, ops.y) * unit
+    local size = Vec(ops.width,ops.height)*unit
+    local x,y=leftup:unpack()
+    local w,h=size:unpack()
+    local vertice = {
+        { 0, 0, x,     y },
+        { 1, 0, x + w, y },
+        { 1, 1, x + w, y+h },
+        { 0, 1, x , y+h },
+         } --{ {x,y,u,v,r,g,b}... }
+    local mesh=love.graphics.newMesh(vertice,'fan')
+    mesh:setTexture(self.image)
+    return mesh
+end
+Pen.Altas=Atlas
 
 ---comment
 ---@param config table {border,border_radius,x,y,width,height}

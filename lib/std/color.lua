@@ -10,14 +10,14 @@ local Color = proto_vector{
         g = 1,
         a = 1, }
 }
-Color.keys=Array{'r','g','b'}
+Color.keys=Array{'r','g','b','a'}
 function Color:new(r,g,b,a)
     self.r=r
     self.g=g
     self.b=b
     self.a=a
 end
-function Color:unpack()
+function Color:table()
     return {self.r,self.g,self.b,self.a}
 end
 return Color

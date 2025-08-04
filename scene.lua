@@ -10,8 +10,13 @@ function sc1:new(t)
     local bg_color=Color(.77,.7,.65)
     local bg = pen.Rect{x=0,y=0,width=100,height=100,color=bg_color}
     self:push(bg)
-    local player = pen.Image{path="images/player.png",height=20,x=40,y=38,wh_ratio=1,anchor=Vec(50,90)}
+    local player = pen.Image{path="images/player.png",height=20,x=50,y=48,wh_ratio=1,anchor=Vec(50,90)}
     local enemy = pen.Image{path="images/enemy.png",height=20,x=80,y=20,wh_ratio=1}
+
+    local arrows=pen.Altas{path="images/arrows.png",grid_size=64}
+    local head= arrows:get_mesh{x=0,y=0,width=3,height=2}
+    self.arrow_mesh=head
+    -- TODO need a arrow class ,atlas
     
     local arrow = pen.Line{points={300,200,300,400},color=Color(.2,.7,.9,.7),width=10}
     self:push(enemy,"enemy")
@@ -90,12 +95,11 @@ function sc1:new(t)
     -- self.music:play()
 end
 function sc1:draw()
-    local x, y, w, h =self:get_xywh()
+    local x, y, w, h =self:xywh()
     love.graphics.push('all')
-    love.graphics.translate(x,y)
     love.graphics.print(string.format("FPS: %i",love.timer.getFPS()), 10, 10)
     love.graphics.stencil(function ()
-        love.graphics.rectangle('fill', 0, 0, w, h)
+        love.graphics.rectangle('fill', x, y, w, h)
     end,"replace",1)
     love.graphics.setStencilTest("greater",0)
     for i,child in ipairs(self.children) do
@@ -107,6 +111,7 @@ function sc1:draw()
     love.graphics.draw(self.mesh)
     love.graphics.setShader()
 
+    love.graphics.draw(self.arrow_mesh,200,200,0,150,100)
     love.graphics.draw(self.psystem,w/5,h/2)
 
     local bx,by= self.bezier:evaluate(self.time%1)
@@ -116,20 +121,19 @@ function sc1:draw()
     love.graphics.pop()
 end
 function sc1:update(dt)
+    self.time = self.time + dt
     self.psystem:moveTo(5*math.sin(10*self.time),0)
     self.psystem:update(dt)
     local inside_pos = self:mouse_in()
-    local _,_,w,h=self:get_xywh()
+    local w,h=self:wh()
 
     local arrow = self:get("arrow")
     local player =self:get('player')
-    local px,py,pw,ph=player:get_xywh()
-    local to_screen=Vec(w,h)/100
+    local px,py=player:xy()
     local target
-    local base =player:get_anchor()
-    local offset=base-Vec(px,py)
+    local base = Vec(px, py)
     if inside_pos then
-        target=inside_pos*to_screen
+        target=inside_pos+Vec(self:xy())
         local max_len = .2*w
         local direction =target - base
         if direction:len() > max_len then
@@ -137,14 +141,12 @@ function sc1:update(dt)
         end
     end
     if self.cmd and target then
-        local normal_space = (target-offset) / to_screen
-        player.x = normal_space.x
-        player.y = normal_space.y
         self.cmd = false
+        player:global(target.x,target.y)
     end
 
-    arrow.points[1] = base.x
-    arrow.points[2] = base.y
+    arrow.points[1] = px
+    arrow.points[2] = py
     
     local button_bg = self.button:get('bg')
     if not self.punch then
@@ -152,13 +154,13 @@ function sc1:update(dt)
         arrow.points[4] = arrow.points[2]
         button_bg.color.g = .2
     end
-   if target and self.punch then
-    arrow.points[3]=target.x
-    arrow.points[4]=target.y
+    if target and self.punch then
+        arrow.points[3] = target.x
+        arrow.points[4] = target.y
+        player.scale.x=(target-base).x>=0 and 1 or -1
         button_bg.color.g = .6
-   end
+    end
 
-   self.time=self.time+dt
    self.shader:send("time",self.time)
 end
 function sc1:keypressed(key)

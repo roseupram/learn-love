@@ -8,6 +8,7 @@ No, still need style, for animation, rotation
 2. practice some animation principle, stretch, anticipation
 
 ## note
+- offset -> rotation -> scaling 
 - use `Array:push`, DO NOT use `Array.push`
 - `__index`: when the key not found in table, search the key in __index
 - to debug in vscode, use `tomblind.local-lua-debugger-vscode`

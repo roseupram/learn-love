@@ -147,4 +147,11 @@ function Vector:__eq(v)
         return self[key]==v[key]
     end)
 end
+function Vector:unpack()
+    local t={}
+    self.keys:each(function (key)
+        table.insert(t,self[key])
+    end)
+    return table.unpack(t)
+end
 return Vector
