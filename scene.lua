@@ -1,7 +1,5 @@
-local prototype=require('prototype')
 local Vec=require('vec')
 local Color=require('color')
-local sprite = require('sprite')
 local pen=require("pen")
 ---@class sc1:Scene
 local sc1=pen.Scene{name="sc1"}
@@ -13,12 +11,24 @@ function sc1:new(t)
     local player = pen.Image{path="images/player.png",height=20,x=50,y=48,wh_ratio=1,anchor=Vec(50,90)}
     local enemy = pen.Image{path="images/enemy.png",height=20,x=80,y=20,wh_ratio=1}
 
-    local arrows=pen.Altas{path="images/arrows.png",grid_size=64}
-    local head= arrows:get_mesh{x=0,y=0,width=3,height=2}
-    self.arrow_mesh=head
-    -- TODO need a arrow class ,atlas
+    local arrow_altas=pen.Altas{path="images/arrows.png",grid_size=64}
+
+    local hbox=pen.Hbox{x=50,y=60,width=50,height=10,anchor=Vec(50,50)}
+    local head= arrow_altas:get_mesh{bound={0,0,3,2}}
+    local tail = arrow_altas:get_mesh{bound={0,0,.01,2}}
+    local head2= arrow_altas:get_mesh{bound={3,0,0,2}}
+    head:wh(nil,100)
+    head2:wh(nil,100)
+    tail:wh(0,100)
+    tail.expand=1
     
+    hbox:push(head2)
+    hbox:push(tail)
+    hbox:push(head)
+    hbox.rotate=.2
+
     local arrow = pen.Line{points={300,200,300,400},color=Color(.2,.7,.9,.7),width=10}
+
     self:push(enemy,"enemy")
     self:push(arrow,"arrow")
     self:push(player,"player")
@@ -27,6 +37,7 @@ function sc1:new(t)
     self.button = pen.Button{x=4,y=0,height=100,wh_ratio=2/3}
     botttom_bar:push(pen.Rect{color=Color(.8,.4,.6)})
     botttom_bar:push(self.button)
+    self:push(hbox,'hbox')
 
     local img = pen.Image{path="images/attack.png",width=100,wh_ratio=1}
     local text = pen.Text{text="Punch\n(A)",y=2*100/3}
@@ -77,7 +88,7 @@ function sc1:new(t)
     love.graphics.setCanvas()
     self.canvas=canvas
     -- use draw instance to make particle
-    local psystem = love.graphics.newParticleSystem(canvas,128)
+    local psystem = love.graphics.newParticleSystem(canvas,32)
     psystem:setParticleLifetime(2,6)
     psystem:setEmissionRate(30)
     psystem:setSizeVariation(.3)
@@ -97,11 +108,8 @@ end
 function sc1:draw()
     local x, y, w, h =self:xywh()
     love.graphics.push('all')
+    -- love.graphics.translate(0,5*math.sin(10*self.time))
     love.graphics.print(string.format("FPS: %i",love.timer.getFPS()), 10, 10)
-    love.graphics.stencil(function ()
-        love.graphics.rectangle('fill', x, y, w, h)
-    end,"replace",1)
-    love.graphics.setStencilTest("greater",0)
     for i,child in ipairs(self.children) do
         if(child.draw) then
             child:draw()
@@ -111,17 +119,17 @@ function sc1:draw()
     love.graphics.draw(self.mesh)
     love.graphics.setShader()
 
-    love.graphics.draw(self.arrow_mesh,200,200,0,150,100)
     love.graphics.draw(self.psystem,w/5,h/2)
 
     local bx,by= self.bezier:evaluate(self.time%1)
     love.graphics.line(self.bezier:render())
     love.graphics.circle('fill',bx,by,4)
-    love.graphics.setStencilTest()
     love.graphics.pop()
 end
 function sc1:update(dt)
     self.time = self.time + dt
+    local hbox=self:get('hbox')
+    hbox.rotate=self.time
     self.psystem:moveTo(5*math.sin(10*self.time),0)
     self.psystem:update(dt)
     local inside_pos = self:mouse_in()

@@ -4,6 +4,7 @@
 -- manage drawing, coloring, font
 local prototype=require('prototype')
 local Color=require('color')
+local Array=require('array')
 local Vec=require('vec')
 local Pen={}
 local Fonts={}
@@ -14,8 +15,12 @@ local Sounds={}
 ---@field super function
 ---@field merge function    
 ---@field parent Scene|nil
+---@field anchor Vec2
+---@field rotate number
+---@field bottom number
 ---@overload fun(...):Scene
-local scene = prototype { name = "scene", x = 0, y = 0, width = 100, height = 100,wh_ratio=1 }
+local scene = prototype { name = "scene", x = 0, y = 0, width = 100, height = 100, wh_ratio = 1,
+    anchor = Vec(0, 0),rotate=0, color = Color(1,1,1)}
 function scene:new(x,y,w,h,wh_ratio)
     if type(x)=="table" then
         self.x=x.x
@@ -36,28 +41,51 @@ function scene:new(x,y,w,h,wh_ratio)
     self.children={}
     self.debug=false
 end
----return x,y,w,h in parent space
----@return number
----@return number
----@return number
----@return number
-function scene:xywh()
-    ---TODO make it in global space
-    local x, y = self:xy()
-    local w,h=self:wh()
+--- set xywh in percentage    
+--- or return x,y,w,h in screen space
+--- @return any
+--- @return any
+--- @return any
+--- @return any
+function scene:xywh(x,y,w,h)
+    if x or y or w or h then
+        self:xy(x,y)
+        self:wh(w,h)
+        return
+    end
+    x, y = self:xy()
+    w,h=self:wh()
     return x,y,w,h
 end
-function scene:xy()
+--- set in percentage  
+--- or return in screen space
+---@param x any
+---@param y any
+function scene:xy(x,y)
+    if x or y then
+        self.x=x or rawget(self,x)
+        self.y=y or rawget(self,y)
+        return
+    end
     local px,py=0,0
+    local Width,Height
     if self.parent then
         px,py,Width, Height = self.parent:xywh()
     else
         Width, Height = love.graphics.getDimensions()
     end
-    local x, y = self.x / 100 * Width, self.y / 100 * Height
+    x, y = self.x / 100 * Width, self.y / 100 * Height
     return x+px,y+py
 end
-function scene:wh()
+--- set in percentage  
+--- or return in screen space
+---@param w any
+---@param h any
+function scene:wh(w,h)
+    if w or h then
+        self.width=w or rawget(self,width)
+        self.height=h or rawget(self,height)
+    end
     local Width,Height
     if self.parent then
         _,_,Width, Height = self.parent:xywh()
@@ -67,7 +95,7 @@ function scene:wh()
     if self.bottom then
         self.height=self.bottom-self.y
     end
-    local w, h = self.width / 100 * Width, self.height / 100 * Height
+    w, h = self.width / 100 * Width, self.height / 100 * Height
     if rawget(self,'wh_ratio') then
         if not rawget(self, 'height') then
             h = w / self.wh_ratio
@@ -77,6 +105,9 @@ function scene:wh()
     end
     return w,h
 end
+
+--- set in screen space 
+--- or return in screen space
 function scene:global(x,y)
     if x==nil then
         return self:xy()
@@ -92,9 +123,15 @@ function scene:global(x,y)
     self.x = x / w * 100
     self.y = y / h * 100
 end
+--- add to .children
+---@param child Scene
+---@param name string|nil
 function scene:push(child,name)
     table.insert(self.children,child)
     if(name)then
+        if self.children[name] then
+            error("repeat name of child")
+        end
         self.children[name] = child
     end
     child.parent=self
@@ -153,16 +190,9 @@ function Image:draw()
     local origin = self.anchor*img_size/100
     love.graphics.draw(self.image,x,y,0,scale.x,scale.y,origin.x,origin.y)
 end
----in parent screen space
----@return Vec2
-function Image:get_anchor()
-    local x,y,w,h=self:xywh()
-    return Vec(x,y)+Vec(w,h)*self.anchor/100
-end
 Pen.Image=Image
 
 ---@class Text:Scene
----@field text string
 local Text=scene{name="Text",size=18}
 function Text:new(ops)
     Text.super(self,ops)
@@ -226,15 +256,17 @@ local Mesh = scene { name = "Mesh",
 function Mesh:new(ops)
     Mesh.super(self,ops)
     self.mesh=love.graphics.newMesh(self.vertex,self.mode,self.usage)
-    self.mesh:setVertexMap(self.vertex_map)
+    if self.mode=='triangles' and self.vertex_map then
+        self.mesh:setVertexMap(self.vertex_map)
+    end
     if ops.texture then
         self.mesh:setTexture(ops.texture)
     end
-    self.anchor=self.anchor/100
 end
 function Mesh:draw()
     local x,y,w,h=self:xywh()
-    love.graphics.draw(self.mesh,x,y,0,w,h,anchor.x,anchor.y)
+    local o =self.anchor/100
+    love.graphics.draw(self.mesh,x,y,self.rotate,w,h,o.x,o.y)
 end
 Pen.Mesh=Mesh
 
@@ -246,24 +278,73 @@ function Atlas:new(ops)
     self.image=Pen.get_img(ops.path)
 end
 ---comment
----@param ops {x:number,y:number,width:number,height:number}
+---@param ops {bound:table}
 function Atlas:get_mesh(ops)
+    local lux,luy,rdx,rdy=table.unpack(ops.bound)
     local unit = Vec(self.image:getDimensions()):invert() * self.grid_size
-    local leftup = Vec(ops.x, ops.y) * unit
-    local size = Vec(ops.width,ops.height)*unit
+    local leftup = Vec(lux,luy) * unit
+    local rightdown = Vec(rdx,rdy)*unit
+    local size= rightdown-leftup
     local x,y=leftup:unpack()
     local w,h=size:unpack()
     local vertice = {
         { 0, 0, x,     y },
         { 1, 0, x + w, y },
         { 1, 1, x + w, y+h },
-        { 0, 1, x , y+h },
-         } --{ {x,y,u,v,r,g,b}... }
-    local mesh=love.graphics.newMesh(vertice,'fan')
-    mesh:setTexture(self.image)
+        { 0, 1, x,     y + h },
+    }      --{ {x,y,u,v,r,g,b}... }
+    local mesh=Pen.Mesh{vertex=vertice,mode='fan',texture=self.image}
+    mesh.wh_ratio=math.abs(w/h)
     return mesh
 end
 Pen.Altas=Atlas
+
+
+---@class Hbox:Scene
+local Hbox=scene{name="Hbox"}
+function Hbox:new(ops)
+    Hbox.super(self,ops)
+end
+function Hbox:draw()
+    local w,h=self:wh()
+    local widths=Array()
+    local expand_child=Array()
+    local expand_t=0
+    local total_width=0
+    for i,child in ipairs(self.children) do
+        local cw,ch=child:wh()
+        widths:push(cw)
+        total_width=total_width+cw
+        if child.expand then
+            expand_child:push(child)
+            expand_t=expand_t+child.expand
+        end
+    end
+    local space_to_expand=w-total_width
+    if space_to_expand>0 then
+        for i,child in ipairs(expand_child) do
+            local cw,ch=child:wh()
+            local dw=child.expand/expand_t*space_to_expand
+            child.width=(cw+dw)/w*100
+        end
+    end
+    local x,y=0,0
+    local offset=self.anchor*Vec(w,h)/100
+    local tl=Vec(self:xy())
+    love.graphics.push('all')
+    love.graphics.translate(tl:unpack())
+    love.graphics.rotate(self.rotate)
+    love.graphics.translate((-tl-offset):unpack())
+    for i,child in ipairs(self.children) do
+        child.x=x
+        child.y=y
+        child:draw()
+        local cw,ch = child:wh()
+        x=x+cw/w*100
+    end
+    love.graphics.pop()
+end
+Pen.Hbox=Hbox
 
 ---comment
 ---@param config table {border,border_radius,x,y,width,height}
