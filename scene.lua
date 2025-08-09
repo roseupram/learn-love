@@ -1,6 +1,9 @@
 local Vec=require('vec')
 local Color=require('color')
 local pen=require("pen")
+local palette={
+    cyan=Color(.2,.7,.9)
+}
 ---@class sc1:Scene
 local sc1=pen.Scene{name="sc1"}
 function sc1:new(t)
@@ -13,31 +16,28 @@ function sc1:new(t)
 
     local arrow_altas=pen.Altas{path="images/arrows.png",grid_size=64}
 
-    local hbox=pen.Hbox{x=50,y=60,width=50,height=10,anchor=Vec(50,50)}
-    local head= arrow_altas:get_mesh{bound={0,0,3,2}}
+    local hbox=pen.Hbox{x=50,y=60,width=20,height=10,anchor=Vec(0,50)}
+    hbox.color = palette.cyan:clone()
+    -- TODO repeat texture uv, pingpong mode
+    local head= arrow_altas:get_mesh{bound={0,0,2,2}}
     local tail = arrow_altas:get_mesh{bound={0,0,.01,2}}
-    local head2= arrow_altas:get_mesh{bound={3,0,0,2}}
     head:wh(nil,100)
-    head2:wh(nil,100)
     tail:wh(0,100)
     tail.expand=1
     
-    hbox:push(head2)
     hbox:push(tail)
     hbox:push(head)
     hbox.rotate=.2
 
-    local arrow = pen.Line{points={300,200,300,400},color=Color(.2,.7,.9,.7),width=10}
 
     self:push(enemy,"enemy")
-    self:push(arrow,"arrow")
+    self:push(hbox,'hbox')
     self:push(player,"player")
     local botttom_bar = pen.Scene{x=30,y=80,bottom=100,width=40,name="bottom bar"}
     self:push(botttom_bar,"bottom_bar")
     self.button = pen.Button{x=4,y=0,height=100,wh_ratio=2/3}
     botttom_bar:push(pen.Rect{color=Color(.8,.4,.6)})
     botttom_bar:push(self.button)
-    self:push(hbox,'hbox')
 
     local img = pen.Image{path="images/attack.png",width=100,wh_ratio=1}
     local text = pen.Text{text="Punch\n(A)",y=2*100/3}
@@ -129,13 +129,11 @@ end
 function sc1:update(dt)
     self.time = self.time + dt
     local hbox=self:get('hbox')
-    hbox.rotate=self.time
     self.psystem:moveTo(5*math.sin(10*self.time),0)
     self.psystem:update(dt)
     local inside_pos = self:mouse_in()
     local w,h=self:wh()
 
-    local arrow = self:get("arrow")
     local player =self:get('player')
     local px,py=player:xy()
     local target
@@ -147,26 +145,25 @@ function sc1:update(dt)
         if direction:len() > max_len then
             target =base + direction:normal() * max_len
         end
+        hbox.rotate=math.atan2(direction.y,direction.x)
+        hbox.width=(target-base):len()/w*100
     end
     if self.cmd and target then
         self.cmd = false
         player:global(target.x,target.y)
     end
 
-    arrow.points[1] = px
-    arrow.points[2] = py
+    hbox:global(px,py)
     
     local button_bg = self.button:get('bg')
     if not self.punch then
-        arrow.points[3] = arrow.points[1]
-        arrow.points[4] = arrow.points[2]
         button_bg.color.g = .2
+        hbox.hidden=true
     end
     if target and self.punch then
-        arrow.points[3] = target.x
-        arrow.points[4] = target.y
         player.scale.x=(target-base).x>=0 and 1 or -1
         button_bg.color.g = .6
+        hbox.hidden=false
     end
 
    self.shader:send("time",self.time)

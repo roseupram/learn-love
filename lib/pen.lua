@@ -18,9 +18,11 @@ local Sounds={}
 ---@field anchor Vec2
 ---@field rotate number
 ---@field bottom number
+---@field color Color
+---@field hidden boolean
 ---@overload fun(...):Scene
 local scene = prototype { name = "scene", x = 0, y = 0, width = 100, height = 100, wh_ratio = 1,
-    anchor = Vec(0, 0),rotate=0, color = Color(1,1,1)}
+    anchor = Vec(0, 0),rotate=0, color = Color(1,1,1),hidden=false}
 function scene:new(x,y,w,h,wh_ratio)
     if type(x)=="table" then
         self.x=x.x
@@ -152,6 +154,9 @@ function scene:mouse_in()
     end
 end
 function scene:draw()
+    if self.hidden then
+        return
+    end
     love.graphics.push('all')
     local x, y, w, h =self:xywh()
     if self.debug then
@@ -306,6 +311,9 @@ function Hbox:new(ops)
     Hbox.super(self,ops)
 end
 function Hbox:draw()
+    if self.hidden then
+        return
+    end
     local w,h=self:wh()
     local widths=Array()
     local expand_child=Array()
@@ -314,27 +322,29 @@ function Hbox:draw()
     for i,child in ipairs(self.children) do
         local cw,ch=child:wh()
         widths:push(cw)
-        total_width=total_width+cw
         if child.expand then
             expand_child:push(child)
             expand_t=expand_t+child.expand
+        else
+            total_width = total_width + cw
         end
     end
     local space_to_expand=w-total_width
     if space_to_expand>0 then
         for i,child in ipairs(expand_child) do
-            local cw,ch=child:wh()
             local dw=child.expand/expand_t*space_to_expand
-            child.width=(cw+dw)/w*100
+            child.width=dw/w*100
         end
     end
     local x,y=0,0
     local offset=self.anchor*Vec(w,h)/100
     local tl=Vec(self:xy())
     love.graphics.push('all')
-    love.graphics.translate(tl:unpack())
+    --TODO why it works?
+    love.graphics.translate(tl:unpack()) -- set rotate pivot
     love.graphics.rotate(self.rotate)
-    love.graphics.translate((-tl-offset):unpack())
+    love.graphics.translate((-tl-offset):unpack()) --back, (x,y) is pivot, not leftup 
+    love.graphics.setColor(self.color:table())
     for i,child in ipairs(self.children) do
         child.x=x
         child.y=y
