@@ -109,6 +109,12 @@ function Array:each(func)
         func(v, i, self)
     end
 end
+
+function Array:clear()
+    for i,v in ipairs(self) do
+        self[i] = nil
+    end
+end
 function Array:__tostring()
     local res=""
     local items={}

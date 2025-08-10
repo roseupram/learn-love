@@ -35,18 +35,25 @@ function sc1:new(t)
     self:push(player,"player")
     local botttom_bar = pen.Scene{x=30,y=80,bottom=100,width=40,name="bottom bar"}
     self:push(botttom_bar,"bottom_bar")
-    self.button = pen.Button{x=4,y=0,height=100,wh_ratio=2/3}
+    local button  =pen.Button{x=4,y=0,height=100,wh_ratio=2/3} 
+    self.button = button
+
     botttom_bar:push(pen.Rect{color=Color(.8,.4,.6)})
     botttom_bar:push(self.button)
 
     local img = pen.Image{path="images/attack.png",width=100,wh_ratio=1}
-    local text = pen.Text{text="Punch\n(A)",y=2*100/3}
     local rect1 = pen.Rect{color=Color(.2,.2,.4),width=100,wh_ratio=1}
+    local text = pen.Text{text="Punch\n(A)",y=2*100/3,color=rect1.color:clone()}
     local rect = pen.Rect{color=Color(.4,.4,.8),y=text.y,bottom=100}
     self.button:push(rect1,"bg")
     self.button:push(rect)
     self.button:push(img,"img")
     self.button:push(text,"text")
+    button.on_hover={
+        { '$bg.color.g',   .6 },
+        { '$text.color.g', .99 },
+    }
+
     local mesh_vertices ={
         {100,100,0,0,1,0,0},
         {200,100,1,0,1,0,0},
@@ -146,7 +153,7 @@ function sc1:update(dt)
             target =base + direction:normal() * max_len
         end
         hbox.rotate=math.atan2(direction.y,direction.x)
-        hbox.width=(target-base):len()/w*100
+        hbox:set_size((target-base):len(),nil)
     end
     if self.cmd and target then
         self.cmd = false
@@ -157,12 +164,12 @@ function sc1:update(dt)
     
     local button_bg = self.button:get('bg')
     if not self.punch then
-        button_bg.color.g = .2
+        self.button:style()
         hbox.hidden=true
     end
     if target and self.punch then
         player.scale.x=(target-base).x>=0 and 1 or -1
-        button_bg.color.g = .6
+        self.button:style('hover')
         hbox.hidden=false
     end
 

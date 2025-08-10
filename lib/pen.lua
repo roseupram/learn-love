@@ -22,7 +22,7 @@ local Sounds={}
 ---@field hidden boolean
 ---@overload fun(...):Scene
 local scene = prototype { name = "scene", x = 0, y = 0, width = 100, height = 100, wh_ratio = 1,
-    anchor = Vec(0, 0),rotate=0, color = Color(1,1,1),hidden=false}
+    anchor = Vec(0, 0),rotate=0, hidden=false}
 function scene:new(x,y,w,h,wh_ratio)
     if type(x)=="table" then
         self.x=x.x
@@ -31,6 +31,7 @@ function scene:new(x,y,w,h,wh_ratio)
         self.height=x.height
         self.wh_ratio=x.wh_ratio
         self.name=x.name
+        self.color=x.color or Color(1,1,1)
         self:merge(x)
     else
         self.x = x
@@ -42,6 +43,7 @@ function scene:new(x,y,w,h,wh_ratio)
     x,y,w,h=self:xywh()
     self.children={}
     self.debug=false
+    self._edited=Array()
 end
 --- set xywh in percentage    
 --- or return x,y,w,h in screen space
@@ -65,8 +67,8 @@ end
 ---@param y any
 function scene:xy(x,y)
     if x or y then
-        self.x=x or rawget(self,x)
-        self.y=y or rawget(self,y)
+        self.x=x or rawget(self,'x')
+        self.y=y or rawget(self,'y')
         return
     end
     local px,py=0,0
@@ -85,8 +87,9 @@ end
 ---@param h any
 function scene:wh(w,h)
     if w or h then
-        self.width=w or rawget(self,width)
-        self.height=h or rawget(self,height)
+        self.width=w or rawget(self,'width')
+        self.height=h or rawget(self,'height')
+        return
     end
     local Width,Height
     if self.parent then
@@ -108,6 +111,15 @@ function scene:wh(w,h)
     return w,h
 end
 
+---set in screen space
+---@param w any
+---@param h any
+function scene:set_size(w,h)
+    if self.parent then
+        local pw, ph = self.parent:wh()
+        self:wh(w and w/pw*100,h and h/ph*100)
+    end
+end
 --- set in screen space 
 --- or return in screen space
 function scene:global(x,y)
@@ -142,6 +154,44 @@ function scene:get(child_name)
     assert(self.children[child_name],string.format("no child is %s",child_name))
     return self.children[child_name]
 end
+function scene:style(name)
+    if name==nil then
+        self._style=""
+        self._edited:each(function (v,i,arr)
+            local t,prop,value=table.unpack(v)
+            t[prop]=value
+        end)
+        self._edited:clear()
+        return
+    end
+    if self._style==name then
+        return
+    end
+    local full_name = 'on_'.. name
+    assert(self[full_name],string.format("No style is %s",name))
+    self._style=name
+    for i,t in ipairs(self[full_name]) do
+        local key, value = table.unpack(t)
+        local target=self
+        for n in key:gmatch("([$%a]+)%.") do
+            -- child or property
+            target=n:find("%$")==1 and target:get(n:sub(2)) or target[n]
+            assert(target,string.format("In %s,  %s not exists!",key,n))
+        end
+        local prop =key:match("(%a+)$")
+        local old_value=target[prop]
+        target[prop]=value
+        self._edited:push({target,prop,old_value})
+    end
+end
+function scene:before_draw()
+    love.graphics.push('all')
+    love.graphics.setColor(self.color:table())
+    
+end
+function scene:after_draw()
+    love.graphics.pop()
+end
 ---return normal pos if mouse_in
 ---@return Vec2|nil relative to self leftup in percentage
 function scene:mouse_in()
@@ -157,7 +207,7 @@ function scene:draw()
     if self.hidden then
         return
     end
-    love.graphics.push('all')
+    self:before_draw()
     local x, y, w, h =self:xywh()
     if self.debug then
         love.graphics.rectangle('line', x, y, w, h)
@@ -167,7 +217,7 @@ function scene:draw()
             child:draw()
         end
     end
-    love.graphics.pop()
+    self:after_draw()
 end
 function scene:keypressed() end
 function scene:mousepressed() end
@@ -189,11 +239,13 @@ function Image:new(ops)
     self.scale=ops.scale or Vec(1,1)
 end
 function Image:draw()
+    self:before_draw()
     local x,y,w,h=self:xywh()
     local img_size = Vec(self.image:getWidth(),self.image:getHeight())
     local scale=self.scale*Vec(w,h)/img_size
     local origin = self.anchor*img_size/100
     love.graphics.draw(self.image,x,y,0,scale.x,scale.y,origin.x,origin.y)
+    self:after_draw()
 end
 Pen.Image=Image
 
@@ -207,9 +259,11 @@ function Text:new(ops)
     self.text=love.graphics.newText(font,ops.text)
 end
 function Text:draw()
+    self:before_draw()
     local x,y,w,h=self:xywh()
     self.text:setf(self.content,w,'center')
     love.graphics.draw(self.text,x,y)
+    self:after_draw()
 end
 Pen.Text=Text
 
