@@ -5,7 +5,7 @@
 local prototype=require('prototype')
 local Color=require('color')
 local Array=require('array')
-local Vec=require('vec')
+local Vec2=require('vec')
 local Pen={}
 local Fonts={}
 local Imgs={}
@@ -22,7 +22,7 @@ local Sounds={}
 ---@field hidden boolean
 ---@overload fun(...):Scene
 local scene = prototype { name = "scene", x = 0, y = 0, width = 100, height = 100, wh_ratio = 1,
-    anchor = Vec(0, 0),rotate=0, hidden=false}
+    anchor = Vec2(0, 0),rotate=0, hidden=false}
 function scene:new(x,y,w,h,wh_ratio)
     if type(x)=="table" then
         self.x=x.x
@@ -32,6 +32,7 @@ function scene:new(x,y,w,h,wh_ratio)
         self.wh_ratio=x.wh_ratio
         self.name=x.name
         self.color=x.color or Color(1,1,1)
+        self.scale = x.scale or Vec2(1,1)
         self:merge(x)
     else
         self.x = x
@@ -128,7 +129,7 @@ function scene:global(x,y)
     end
     local w, h
     if self.parent then
-        local local_xy=Vec(x,y)-Vec(self.parent:xy())
+        local local_xy=Vec2(x,y)-Vec2(self.parent:xy())
         x,y=local_xy:unpack()
         w, h = self.parent:wh()
     else
@@ -141,6 +142,7 @@ end
 ---@param child Scene
 ---@param name string|nil
 function scene:push(child,name)
+    assert(child,"child can not be nil")
     table.insert(self.children,child)
     if(name)then
         if self.children[name] then
@@ -196,11 +198,11 @@ end
 ---@return Vec2|nil relative to self leftup in percentage
 function scene:mouse_in()
     local x, y ,w,h= self:xywh()
-    local mouse_pos= Vec(love.mouse.getPosition())
+    local mouse_pos= Vec2(love.mouse.getPosition())
     x, y = mouse_pos.x - x , mouse_pos.y - y
     local inside = x > 0 and x < w and y > 0 and y < h
     if (inside) then
-        return Vec(x, y)
+        return Vec2(x, y)
     end
 end
 function scene:draw()
@@ -224,26 +226,30 @@ function scene:mousepressed() end
 Pen.Scene=scene
 
 ---@class Button:Scene  
-local Button=scene{name="Button"}
+local Button=scene{name="Button",shortcut="undefined"}
 function Button:new(ops)
     Button.super(self,ops)
 end
 Pen.Button=Button
 
 ---@class Image:Scene
-local Image=scene{name="Image",anchor=Vec(0,0)}
+local Image=scene{name="Image",anchor=Vec2(0,0)}
+-- TODO outline shader
 function Image:new(ops)
     Image.super(self,ops)
     self.image=Pen.get_img(ops.path)
     self.anchor=ops.anchor
-    self.scale=ops.scale or Vec(1,1)
+    self.scale=ops.scale or Vec2(1,1)
+    self.shader = love.graphics.newShader("shader/outline.glsl")
 end
 function Image:draw()
     self:before_draw()
     local x,y,w,h=self:xywh()
-    local img_size = Vec(self.image:getWidth(),self.image:getHeight())
-    local scale=self.scale*Vec(w,h)/img_size
+    local img_size = Vec2(self.image:getWidth(),self.image:getHeight())
+    local scale=self.scale*Vec2(w,h)/img_size
     local origin = self.anchor*img_size/100
+    self.shader:send('lw',2/w)
+    love.graphics.setShader(self.shader)
     love.graphics.draw(self.image,x,y,0,scale.x,scale.y,origin.x,origin.y)
     self:after_draw()
 end
@@ -311,7 +317,7 @@ Pen.Line=Line
 ---@field rotate number
 local Mesh = scene { name = "Mesh",
     mode = 'fan', usage = 'dynamic', vertex = {}, vertex_map = {},
-    anchor = Vec(0, 0), rotate = 0 }
+    anchor = Vec2(0, 0), rotate = 0 }
 function Mesh:new(ops)
     Mesh.super(self,ops)
     self.mesh=love.graphics.newMesh(self.vertex,self.mode,self.usage)
@@ -340,9 +346,9 @@ end
 ---@param ops {bound:table}
 function Atlas:get_mesh(ops)
     local lux,luy,rdx,rdy=table.unpack(ops.bound)
-    local unit = Vec(self.image:getDimensions()):invert() * self.grid_size
-    local leftup = Vec(lux,luy) * unit
-    local rightdown = Vec(rdx,rdy)*unit
+    local unit = Vec2(self.image:getDimensions()):invert() * self.grid_size
+    local leftup = Vec2(lux,luy) * unit
+    local rightdown = Vec2(rdx,rdy)*unit
     local size= rightdown-leftup
     local x,y=leftup:unpack()
     local w,h=size:unpack()
@@ -384,17 +390,16 @@ function Hbox:draw()
         end
     end
     local space_to_expand=w-total_width
-    if space_to_expand>0 then
+    if space_to_expand>0  then
         for i,child in ipairs(expand_child) do
             local dw=child.expand/expand_t*space_to_expand
             child.width=dw/w*100
         end
     end
     local x,y=0,0
-    local offset=self.anchor*Vec(w,h)/100
-    local tl=Vec(self:xy())
+    local offset=self.anchor*Vec2(w,h)/100
+    local tl=Vec2(self:xy())
     love.graphics.push('all')
-    --TODO why it works?
     love.graphics.translate(tl:unpack()) -- set rotate pivot
     love.graphics.rotate(self.rotate)
     love.graphics.translate((-tl-offset):unpack()) --back, (x,y) is pivot, not leftup 
@@ -409,6 +414,31 @@ function Hbox:draw()
     love.graphics.pop()
 end
 Pen.Hbox=Hbox
+
+---@class Ring:Scene
+---@field range number
+local Ring=Pen.Scene{name="Circle",range=math.pi*2}
+function Ring:new(ops)
+    Ring.super(self,ops)
+    self.inner_radius=ops.inner_radius
+end
+function Ring:draw()
+    self:before_draw()
+    local x,y,w,h=self:xywh()
+    love.graphics.translate(x,y) -- move origin 
+    love.graphics.scale(self.scale:unpack())
+    love.graphics.translate(-x,-y) -- restore
+    local radius= w/2
+    love.graphics.stencil(function ()
+        love.graphics.circle('fill',x,y,self.inner_radius*radius/100)
+    end,'replace',1)
+    love.graphics.setStencilTest('equal',0)
+    love.graphics.arc('fill', x, y, radius,
+        self.rotate, self.rotate + self.range)
+    love.graphics.setStencilTest()
+    self:after_draw()
+end
+Pen.Ring=Ring
 
 ---comment
 ---@param config table {border,border_radius,x,y,width,height}

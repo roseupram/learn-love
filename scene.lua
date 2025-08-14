@@ -1,4 +1,4 @@
-local Vec=require('vec')
+local Vec2=require('vec')
 local Color=require('color')
 local pen=require("pen")
 local palette={
@@ -11,14 +11,14 @@ function sc1:new(t)
     local bg_color=Color(.77,.7,.65)
     local bg = pen.Rect{x=0,y=0,width=100,height=100,color=bg_color}
     self:push(bg)
-    local player = pen.Image{path="images/player.png",height=20,x=50,y=48,wh_ratio=1,anchor=Vec(50,90)}
+    local player = pen.Image{path="images/player.png",height=20,x=50,y=48,wh_ratio=1,anchor=Vec2(46,90)}
     local enemy = pen.Image{path="images/enemy.png",height=20,x=80,y=20,wh_ratio=1}
 
     local arrow_altas=pen.Altas{path="images/arrows.png",grid_size=64}
 
-    local hbox=pen.Hbox{x=50,y=60,width=20,height=10,anchor=Vec(0,50)}
+    local hbox=pen.Hbox{x=50,y=60,width=20,height=10,anchor=Vec2(0,50)}
     hbox.color = palette.cyan:clone()
-    -- TODO repeat texture uv, pingpong mode
+    -- TODO repeat texture uv, cycle 
     local head= arrow_altas:get_mesh{bound={0,0,2,2}}
     local tail = arrow_altas:get_mesh{bound={0,0,.01,2}}
     head:wh(nil,100)
@@ -30,20 +30,28 @@ function sc1:new(t)
     hbox.rotate=.2
 
 
+    self:push(pen.Ring{x=50,y=48,inner_radius=20,width=40,range=math.pi*.7,
+        color = Color(.9, .8, .5, .7),scale=Vec2(1,.5) }, 'ring')
     self:push(enemy,"enemy")
     self:push(hbox,'hbox')
     self:push(player,"player")
-    local botttom_bar = pen.Scene{x=30,y=80,bottom=100,width=40,name="bottom bar"}
+    local botttom_bar = pen.Scene{x=30,y=80,bottom=100,width=40,name="bottom_bar"}
     self:push(botttom_bar,"bottom_bar")
-    local button  =pen.Button{x=4,y=0,height=100,wh_ratio=2/3} 
+    local button  =pen.Button{x=4,y=0,height=100,wh_ratio=2/3,shortcut='A'}
+    local att  =pen.Button{x=4,y=0,height=100,wh_ratio=3/3,shortcut='D'}
     self.button = button
+    local cards_container=pen.Hbox{x=0,y=0,width=100,height=100,name='cards_container'}
+    cards_container:push(att)
+    cards_container:push(button)
+    att:push(pen.Rect{color=Color(.9,.7,.3),width=100,wh_ratio=3/2})
+    att:push(pen.Text{text=string.format("punch\n(%s)",att.shortcut),y=2/3*100,width=100,wh_ratio=3/1})
 
-    botttom_bar:push(pen.Rect{color=Color(.8,.4,.6)})
-    botttom_bar:push(self.button)
+    botttom_bar:push(pen.Rect{color=Color(.8,.4,.6)},'bg')
+    botttom_bar:push(cards_container,cards_container.name)
 
     local img = pen.Image{path="images/attack.png",width=100,wh_ratio=1}
     local rect1 = pen.Rect{color=Color(.2,.2,.4),width=100,wh_ratio=1}
-    local text = pen.Text{text="Punch\n(A)",y=2*100/3,color=rect1.color:clone()}
+    local text = pen.Text{text=string.format("dash\n(%s)",button.shortcut),y=2*100/3,color=rect1.color:clone()}
     local rect = pen.Rect{color=Color(.4,.4,.8),y=text.y,bottom=100}
     self.button:push(rect1,"bg")
     self.button:push(rect)
@@ -135,6 +143,10 @@ function sc1:draw()
 end
 function sc1:update(dt)
     self.time = self.time + dt
+    do
+        local ring = self:get('ring')
+        ring.rotate = self.time
+    end
     local hbox=self:get('hbox')
     self.psystem:moveTo(5*math.sin(10*self.time),0)
     self.psystem:update(dt)
@@ -144,9 +156,9 @@ function sc1:update(dt)
     local player =self:get('player')
     local px,py=player:xy()
     local target
-    local base = Vec(px, py)
+    local base = Vec2(px, py)
     if inside_pos then
-        target=inside_pos+Vec(self:xy())
+        target=inside_pos+Vec2(self:xy())
         local max_len = .2*w
         local direction =target - base
         if direction:len() > max_len then
@@ -177,7 +189,7 @@ function sc1:update(dt)
 end
 function sc1:keypressed(key)
 
-    if key=='a' and self:mouse_in() then
+    if key==self.button.shortcut:lower() and self:mouse_in() then
         self.punch=true
     end
 end

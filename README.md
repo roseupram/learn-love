@@ -12,6 +12,7 @@ No, still need style, for animation, rotation
 - use `Array:push`, DO NOT use `Array.push`
 - `__index`: when the key not found in table, search the key in __index
 - to debug in vscode, use `tomblind.local-lua-debugger-vscode`
+- to format glsl shader, use `clang-format`
 - vertex_position: love shader only render vertex in [-1,1], -1 is near, 1 is far  
 left is x+, up is y+, inward is z+, so that's a **left-hand coordinate**,  
  but in glTF, models are placed in right-hand coordinate, 
