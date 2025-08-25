@@ -16,6 +16,7 @@ No, still need style, for animation, rotation
 - vertex_position: love shader only render vertex in [-1,1], -1 is near, 1 is far  
 left is x+, up is y+, inward is z+, so that's a **left-hand coordinate**,  
  but in glTF, models are placed in right-hand coordinate, 
+- int and float: `1/100=0; 1.0/100=0.01`
 - mat in glsl is column-major
 - lua 5.1
 - lÖve 11.5

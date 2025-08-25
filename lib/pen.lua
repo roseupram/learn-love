@@ -16,11 +16,12 @@ local Sounds={}
 ---@field merge function    
 ---@field parent Scene|nil
 ---@field anchor Vec2
+---@field scale Vec2
 ---@field rotate number
 ---@field bottom number
----@field color Color
+---@field color Color|"inherit"
 ---@field hidden boolean
----@overload fun(...):Scene
+---@overload fun(...):Scene|any
 local scene = prototype { name = "scene", x = 0, y = 0, width = 100, height = 100, wh_ratio = 1,
     anchor = Vec2(0, 0),rotate=0, hidden=false}
 function scene:new(x,y,w,h,wh_ratio)
@@ -152,10 +153,15 @@ function scene:push(child,name)
     end
     child.parent=self
 end
+---get child by name
+---@param child_name string 
+---@return Scene|any
 function scene:get(child_name)
     assert(self.children[child_name],string.format("no child is %s",child_name))
     return self.children[child_name]
 end
+---scene.on_name ={ '$child.prop.prop', value}
+---@param name string |nil nil to reset
 function scene:style(name)
     if name==nil then
         self._style=""
@@ -188,14 +194,15 @@ function scene:style(name)
 end
 function scene:before_draw()
     love.graphics.push('all')
-    love.graphics.setColor(self.color:table())
-    
+    if(self.color ~= 'inherit') then
+        love.graphics.setColor(self.color:table())
+    end
 end
 function scene:after_draw()
     love.graphics.pop()
 end
----return normal pos if mouse_in
----@return Vec2|nil relative to self leftup in percentage
+---return pos in screen space if mouse_in
+---@return Vec2|nil relative to self leftup in screen space
 function scene:mouse_in()
     local x, y ,w,h= self:xywh()
     local mouse_pos= Vec2(love.mouse.getPosition())
@@ -205,27 +212,32 @@ function scene:mouse_in()
         return Vec2(x, y)
     end
 end
-function scene:draw()
+function scene:render()
     if self.hidden then
         return
     end
     self:before_draw()
+    self:draw()
+    self:after_draw()
+end
+function scene:draw()
     local x, y, w, h =self:xywh()
     if self.debug then
         love.graphics.rectangle('line', x, y, w, h)
     end
     for i,child in ipairs(self.children) do
         if(child.draw) then
-            child:draw()
+            child:render()
         end
     end
-    self:after_draw()
 end
 function scene:keypressed() end
 function scene:mousepressed() end
 Pen.Scene=scene
 
 ---@class Button:Scene  
+---@field shortcut string
+---@overload fun(...):Button
 local Button=scene{name="Button",shortcut="undefined"}
 function Button:new(ops)
     Button.super(self,ops)
@@ -238,9 +250,8 @@ local Image=scene{name="Image",anchor=Vec2(0,0)}
 function Image:new(ops)
     Image.super(self,ops)
     self.image=Pen.get_img(ops.path)
-    self.anchor=ops.anchor
-    self.scale=ops.scale or Vec2(1,1)
     self.shader = love.graphics.newShader("shader/outline.glsl")
+    self.outline=0
 end
 function Image:draw()
     self:before_draw()
@@ -248,9 +259,10 @@ function Image:draw()
     local img_size = Vec2(self.image:getWidth(),self.image:getHeight())
     local scale=self.scale*Vec2(w,h)/img_size
     local origin = self.anchor*img_size/100
-    self.shader:send('lw',2/w)
+    self.shader:send('lw',self.outline/w)
     love.graphics.setShader(self.shader)
     love.graphics.draw(self.image,x,y,0,scale.x,scale.y,origin.x,origin.y)
+    love.graphics.setShader()
     self:after_draw()
 end
 Pen.Image=Image
@@ -327,6 +339,7 @@ function Mesh:new(ops)
     if ops.texture then
         self.mesh:setTexture(ops.texture)
     end
+    self.color= ops.color or 'inherit'
 end
 function Mesh:draw()
     local x,y,w,h=self:xywh()
@@ -336,14 +349,15 @@ end
 Pen.Mesh=Mesh
 
 ---@class Atlas:Scene
+---@overload fun(...):Atlas
 local Atlas=scene{name="Atlas",grid_size=1}
 function Atlas:new(ops)
     Atlas.super(self,ops)
     self.grid_size = ops.grid_size
     self.image=Pen.get_img(ops.path)
 end
----comment
----@param ops {bound:table}
+--- bound: [leftupx, leftupy, rightdownx, rightdowny]
+---@param ops {bound:[number,number,number,number]}
 function Atlas:get_mesh(ops)
     local lux,luy,rdx,rdy=table.unpack(ops.bound)
     local unit = Vec2(self.image:getDimensions()):invert() * self.grid_size
@@ -366,6 +380,7 @@ Pen.Altas=Atlas
 
 
 ---@class Hbox:Scene
+---@overload fun(...):Hbox
 local Hbox=scene{name="Hbox"}
 function Hbox:new(ops)
     Hbox.super(self,ops)
@@ -399,19 +414,19 @@ function Hbox:draw()
     local x,y=0,0
     local offset=self.anchor*Vec2(w,h)/100
     local tl=Vec2(self:xy())
-    love.graphics.push('all')
+    -- love.graphics.push('all')
     love.graphics.translate(tl:unpack()) -- set rotate pivot
     love.graphics.rotate(self.rotate)
     love.graphics.translate((-tl-offset):unpack()) --back, (x,y) is pivot, not leftup 
-    love.graphics.setColor(self.color:table())
+    -- love.graphics.setColor(self.color:table())
     for i,child in ipairs(self.children) do
         child.x=x
         child.y=y
-        child:draw()
+        child:render()
         local cw,ch = child:wh()
         x=x+cw/w*100
     end
-    love.graphics.pop()
+    -- love.graphics.pop()
 end
 Pen.Hbox=Hbox
 

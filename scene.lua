@@ -2,17 +2,19 @@ local Vec2=require('vec')
 local Color=require('color')
 local pen=require("pen")
 local palette={
-    cyan=Color(.2,.7,.9)
+    cyan=Color(.2,.7,.9,.6),
+    orange=Color(.9,.5,.2,.59),
+    bg_color=Color(.77,.7,.65),
 }
 ---@class sc1:Scene
 local sc1=pen.Scene{name="sc1"}
 function sc1:new(t)
     sc1.super(self,t)
-    local bg_color=Color(.77,.7,.65)
-    local bg = pen.Rect{x=0,y=0,width=100,height=100,color=bg_color}
+    local bg = pen.Rect{x=0,y=0,width=100,height=100,color=palette.bg_color:clone()}
     self:push(bg)
     local player = pen.Image{path="images/player.png",height=20,x=50,y=48,wh_ratio=1,anchor=Vec2(46,90)}
     local enemy = pen.Image{path="images/enemy.png",height=20,x=80,y=20,wh_ratio=1}
+    enemy.outline=4
 
     local arrow_altas=pen.Altas{path="images/arrows.png",grid_size=64}
 
@@ -29,12 +31,12 @@ function sc1:new(t)
     hbox:push(head)
     hbox.rotate=.2
 
-
     self:push(pen.Ring{x=50,y=48,inner_radius=20,width=40,range=math.pi*.7,
-        color = Color(.9, .8, .5, .7),scale=Vec2(1,.5) }, 'ring')
+        color = palette.orange:clone(),scale=Vec2(1,.5) }, 'ring')
     self:push(enemy,"enemy")
     self:push(hbox,'hbox')
     self:push(player,"player")
+
     local botttom_bar = pen.Scene{x=30,y=80,bottom=100,width=40,name="bottom_bar"}
     self:push(botttom_bar,"bottom_bar")
     local button  =pen.Button{x=4,y=0,height=100,wh_ratio=2/3,shortcut='A'}
@@ -54,10 +56,10 @@ function sc1:new(t)
     local text = pen.Text{text=string.format("dash\n(%s)",button.shortcut),y=2*100/3,color=rect1.color:clone()}
     local rect = pen.Rect{color=Color(.4,.4,.8),y=text.y,bottom=100}
     self.button:push(rect1,"bg")
-    self.button:push(rect)
     self.button:push(img,"img")
+    self.button:push(rect,'text_bg')
     self.button:push(text,"text")
-    button.on_hover={
+    button.on_enable={
         { '$bg.color.g',   .6 },
         { '$text.color.g', .99 },
     }
@@ -127,7 +129,7 @@ function sc1:draw()
     love.graphics.print(string.format("FPS: %i",love.timer.getFPS()), 10, 10)
     for i,child in ipairs(self.children) do
         if(child.draw) then
-            child:draw()
+            child:render()
         end
     end
     love.graphics.setShader(self.shader)
@@ -147,45 +149,46 @@ function sc1:update(dt)
         local ring = self:get('ring')
         ring.rotate = self.time
     end
-    local hbox=self:get('hbox')
     self.psystem:moveTo(5*math.sin(10*self.time),0)
     self.psystem:update(dt)
+
+    local hbox=self:get('hbox')
     local inside_pos = self:mouse_in()
     local w,h=self:wh()
 
     local player =self:get('player')
-    local px,py=player:xy()
     local target
-    local base = Vec2(px, py)
-    if inside_pos then
-        target=inside_pos+Vec2(self:xy())
-        local max_len = .2*w
-        local direction =target - base
-        if direction:len() > max_len then
-            target =base + direction:normal() * max_len
-        end
-        hbox.rotate=math.atan2(direction.y,direction.x)
-        hbox:set_size((target-base):len(),nil)
-    end
-    if self.cmd and target then
-        self.cmd = false
-        player:global(target.x,target.y)
-    end
+    if inside_pos and self.punch then
+        target=inside_pos+Vec2(self:xy())-- screen space
 
-    hbox:global(px,py)
-    
-    local button_bg = self.button:get('bg')
-    if not self.punch then
+        local px,py=player:xy()
+        hbox:global(px,py)
+
+        local base = Vec2(px, py)
+        local direction =target - base
+        local max_len = .2*w -- TODO should be a ellipse
+        if direction:len() > max_len then
+            direction=direction:normal()*max_len
+            target =base + direction
+        end
+        hbox.rotate=direction:theta()
+        player.scale.x=direction.x>=0 and 1 or -1
+
+        self.button:style('enable')
+        hbox.hidden=false
+        hbox:set_size(direction:len(),nil)
+    end
+    if self.cmd then
+        player:global(target.x,target.y) -- move
+        self.cmd = false
+        self.punch=false
+    end
+    if self.punch~= true then
         self.button:style()
         hbox.hidden=true
     end
-    if target and self.punch then
-        player.scale.x=(target-base).x>=0 and 1 or -1
-        self.button:style('hover')
-        hbox.hidden=false
-    end
 
-   self.shader:send("time",self.time)
+    self.shader:send("time", self.time)
 end
 function sc1:keypressed(key)
 
@@ -198,11 +201,11 @@ function sc1:mousepressed(x,y,button,istouch,times)
         return
     end
     if button==2 then
+        self.cmd=false
         self.punch=false
     end
     if button==1 and self.punch then
         self.cmd=true
-        self.punch=false
     end
 end
 return sc1

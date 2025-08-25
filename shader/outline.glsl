@@ -1,5 +1,6 @@
 uniform float lw = .1;
 const float Threshod=.5;
+uniform vec4 edge_color = vec4(.9, .6, .1, .9);
 
 bool on_edge(Image tex, vec2 uv, float width) {
     bool res = false;
@@ -7,13 +8,13 @@ bool on_edge(Image tex, vec2 uv, float width) {
         for (int j = -1; j <= 1; j++) {
             vec2 dir1 = vec2(width * i, width * j);
             res = res || Texel(tex, uv + dir1).a >= Threshod;
+            if (res) return true;
         }
     }
     return res;
 }
 
 vec4 effect(vec4 base_color, Image tex, vec2 uv, vec2 screen_coords) {
-    vec4 edge_color = vec4(.9, .6, .1, 1);
     vec4 texcolor = Texel(tex, uv);
     if (lw > 0 && texcolor.a < Threshod && on_edge(tex, uv, lw)) {
         texcolor = edge_color;

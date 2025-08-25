@@ -10,29 +10,65 @@ local timer=require('timer')()
 local scene=require('scene')
 
 
-local myImage
 local root_scene
+local my_mesh,my_shader
+local lg = love.graphics
+local Time=0
 function love.draw()
     local bg_color = {0.,0.,0.}
     love.graphics.clear(table.unpack(bg_color))
-    root_scene:draw()
+    lg.setShader(my_shader)
+    love.graphics.draw(my_mesh)
+    lg.setShader()
+    -- root_scene:render()
 end
 --- see https://www.love2d.org/wiki/love.run
 --- after update, call origin,clear,draw
 function love.update(dt)
+    Time=Time+dt
+    my_shader:send('time',Time)
     timer:update(dt)
-    root_scene:update(dt)
+    -- root_scene:update(dt)
 end
 
 function love.load()
-    timer:oneshot(function (self,elapsed)
-        print(string.format("%.3f s elasped",elapsed))
-    end,2000)
+    lg.setDepthMode('less',true)
+    local vformat={
+        {"VertexPosition","float",3},
+        {"VertexColor","float",3},
+    }
+    local vertex={
+        { -1, 1,  1,  1, 0, 0 },
+        { 1,  1,  1,  1, 0, 0 },
+        { 1,  -1, 1,  1, 0, 0 },
+        { -1, -1, 1,  1, 0, 0 },
+        {-1,1,1,0,1,0},
+        {1,1,1,0,1,0},
+        {1,1,-1,0,1,0},
+        {-1,1,-1,0,1,0},
+        { 1,  1,  1,  0, 0, 1 },
+        { 1,  -1, 1,  0, 0, 1 },
+        { 1,  -1, -1, 0, 0, 1 },
+        { 1,  1,  -1, 0, 0, 1 },
+        { -1, 1,  -1,  1, 1, 0 },
+        { 1,  1,  -1,  1, 1, 0 },
+        { 1,  -1,-1,  1, 1, 0 },
+        { -1, -1, -1,  1, 1, 0 },
+    }
+    -- for i,v in ipairs(vertex) do
+    --     vertex[i][1]=vertex[i][1]/400
+    --     vertex[i][2]=vertex[i][2]/400
+    --     vertex[i][3]=vertex[i][3]/400
+    -- end
+    my_mesh=lg.newMesh(vformat,vertex,"triangles")
+    my_mesh:setVertexMap(1,3,2,1,4,3,8,5,6,8,6,7,9,10,11,9,11,12,13,14,15,13,15,16)
+    my_shader=lg.newShader('shader/isometric.glsl')
+    local w,h=lg.getDimensions()
+    my_shader:send('wh_ratio',w/h)
 
     local font =love.graphics.newFont(18)
     love.graphics.setFont(font)
     print('load')
-    myImage=love.graphics.newImage("images/player.png")
     root_scene = scene {
         y = 10,
         width = 100,
@@ -40,6 +76,7 @@ function love.load()
     }
 end
 function love.resize(w,h)
+    my_shader:send('wh_ratio',w/h)
     -- spire.content=rectsize(0,0,w,h)
 end
 function love.mousereleased(x,y)
