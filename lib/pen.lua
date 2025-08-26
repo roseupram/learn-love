@@ -246,7 +246,6 @@ Pen.Button=Button
 
 ---@class Image:Scene
 local Image=scene{name="Image",anchor=Vec2(0,0)}
--- TODO outline shader
 function Image:new(ops)
     Image.super(self,ops)
     self.image=Pen.get_img(ops.path)

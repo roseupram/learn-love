@@ -2,10 +2,6 @@ style: element class id > merge to a table
 so element do not need style, just need class
 No, still need style, for animation, rotation 
 # learn-love
-## TODO
-1. card show select play
-2. color: RGB and RGBA
-2. practice some animation principle, stretch, anticipation
 
 ## note
 - offset -> rotation -> scaling 
@@ -17,6 +13,7 @@ No, still need style, for animation, rotation
 left is x+, up is y+, inward is z+, so that's a **left-hand coordinate**,  
  but in glTF, models are placed in right-hand coordinate, 
 - int and float: `1/100=0; 1.0/100=0.01`
+- RxRy ~= RyRx, inverse(RxRy)=Ry' Rx', change some view
 - mat in glsl is column-major
 - lua 5.1
 - lÖve 11.5
