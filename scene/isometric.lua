@@ -8,6 +8,7 @@ local Array=require('array')
 local FP=require('FP')
 local timer=require('timer')()
 local Pen=require('pen')
+local Camera=require('3d.camera')
 
 
 local my_mesh,my_shader
@@ -20,28 +21,49 @@ local tls={
 local Time=0
 local sc = Pen.Scene{name="Isometric"}
 function sc:draw()
-    local bg_color = {0.,0.,0.}
-    love.graphics.clear(table.unpack(bg_color))
+    local bg_color = {.1,.1,.1}
+    lg.clear(table.unpack(bg_color))
     lg.setShader(my_shader)
     for i,tl in ipairs(tls) do
         my_shader:send('tl', tl)
-        love.graphics.draw(my_mesh)
+        lg.draw(my_mesh)
     end
     lg.setShader()
 end
 --- see https://www.love2d.org/wiki/love.run
 --- after update, call origin,clear,draw
 function sc:update(dt)
+    timer:update(dt)
+    local lk=love.keyboard
+    local dz, dx = 0, 0
+    if lk.isDown('w') then
+        dz = dz + 1
+    end
+    if lk.isDown('s') then
+        dz = dz - 1
+    end
+    if lk.isDown('a') then
+        dx=dx-1
+    end
+    if lk.isDown('d') then
+        dx=dx+1
+    end
+    dz=dz*dt; dx=dx*dt
+    local y_rot=-self.camera.y_rot
+    local front = Vec(-1,0):rotate(y_rot,true)
+    local left=Vec(0,1):rotate(y_rot,true)
+    local dv=front*dz+left*dx
+    -- dv[1]=dz*front.y+dx*left.y
+    -- dv[3]=dz*front.x+dx*left.x
+    self.camera:move{dv.y,0,dv.x}
     Time=Time+dt
     my_shader:send('time',Time)
-    my_shader:send('camera_param','column',{
-        -0,0,0,
-        math.rad(-30),math.rad(-45+self.y_rot),self.radius
-    })
-    timer:update(dt)
+    my_shader:send('camera_param','column',self.camera:param_mat())
 end
 
 function sc:new()
+    self.rotate_pivot=-1
+    self.camera=Camera()
     lg.setDepthMode('less',true)
     local vformat={
         {"VertexPosition","float",3},
@@ -71,9 +93,6 @@ function sc:new()
     my_shader=lg.newShader('shader/isometric.glsl')
     local w,h=lg.getDimensions()
     my_shader:send('wh_ratio',w/h)
-    self.radius=1
-    self.y_rot=0
-    self.rotate_pivot=-1
 end
 function sc:resize(w,h)
     my_shader:send('wh_ratio',w/h)
@@ -86,7 +105,7 @@ function sc:keypressed(key,scancode,isrepeat)
     if key=='lalt' then
         local x,y=love.mouse.getPosition()
         self.rotate_pivot=x
-        self.y_base=self.y_rot
+        self.y_base=self.camera.y_rot
     end
 end
 function sc:keyreleased(key,scancode,isrepeat)
@@ -97,7 +116,7 @@ end
 function sc:mousemoved(x,y)
     if self.rotate_pivot>0 then
         local dx= x-self.rotate_pivot
-        self.y_rot=self.y_base+dx
+        self.camera.y_rot=self.y_base+dx
     end
 end
 

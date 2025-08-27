@@ -9,23 +9,23 @@ function timer:new()
     self.queue = Array()
 end
 ---@param func any return true to remove self
----@param period_ms number|nil in milisecond
-function timer:interval(func,period_ms)
+---@param period number|nil in sceond
+function timer:interval(func,period)
     self.queue:push{
         f=func,
-        period_ms=period_ms or 1000,
+        period=period or 1,
         start=self.time,
         cycle=0,
     }
 end
 
 ---@param func fun(self:table,elapsed:number)
----@param delay_ms number|nil in milisecond, default 1000
-function timer:oneshot(func,delay_ms)
+---@param delay number|nil in milisecond, default 1000
+function timer:oneshot(func,delay)
     self:interval(function (...)
         func(...)
         return true
-    end,delay_ms or 1000)
+    end,delay or 1)
 end
 
 function timer:update(t)
@@ -33,7 +33,7 @@ function timer:update(t)
 
     local pop_index=Array()
     self.queue:each(function (v,i)
-        local period=v.period_ms/1000
+        local period=v.period
         local dt=self.time-v.start
         if dt>period*(v.cycle+1) then
             v.cycle=v.cycle+1
