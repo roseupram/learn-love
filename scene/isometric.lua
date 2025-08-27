@@ -1,7 +1,7 @@
 -- require('lldebugger').start()
 -- print(_VERSION)
 local Vec= require("vec")
-local Point = require("point")
+local Point = require("3d.point")
 local Shape = require("shape")
 local Color=Shape.Color
 local Array=require('array')
@@ -23,6 +23,7 @@ local sc = Pen.Scene{name="Isometric"}
 function sc:draw()
     local bg_color = {.1,.1,.1}
     lg.clear(table.unpack(bg_color))
+    lg.print(self.name,1,1)
     lg.setShader(my_shader)
     for i,tl in ipairs(tls) do
         my_shader:send('tl', tl)
@@ -30,8 +31,7 @@ function sc:draw()
     end
     lg.setShader()
 end
---- see https://www.love2d.org/wiki/love.run
---- after update, call origin,clear,draw
+---@param dt number
 function sc:update(dt)
     timer:update(dt)
     local lk=love.keyboard
@@ -49,16 +49,14 @@ function sc:update(dt)
         dx=dx+1
     end
     dz=dz*dt; dx=dx*dt
-    local y_rot=-self.camera.y_rot
-    local front = Vec(-1,0):rotate(y_rot,true)
-    local left=Vec(0,1):rotate(y_rot,true)
+    local cam = self.camera
+    local front = cam:front()
+    local left=cam:left()
     local dv=front*dz+left*dx
-    -- dv[1]=dz*front.y+dx*left.y
-    -- dv[3]=dz*front.x+dx*left.x
-    self.camera:move{dv.y,0,dv.x}
+    cam:move(dv)
     Time=Time+dt
     my_shader:send('time',Time)
-    my_shader:send('camera_param','column',self.camera:param_mat())
+    my_shader:send('camera_param','column',cam:param_mat())
 end
 
 function sc:new()
@@ -99,7 +97,7 @@ function sc:resize(w,h)
     -- spire.content=rectsize(0,0,w,h)
 end
 function sc:wheelmoved(x,y)
-    self.radius=FP.clamp(self.radius-y/10,.5,4)
+    self.camera:zoom(-y/10)
 end
 function sc:keypressed(key,scancode,isrepeat)
     if key=='lalt' then

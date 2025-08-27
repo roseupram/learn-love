@@ -16,6 +16,22 @@ function Vector:new(config)
     self.keys=Array(table.keys(default)):sorted()
     self:merge(default)
 end
+---inplace multiply
+---@return Vector
+function Vector:mul(nv)
+    self.keys:each(function (k)
+        self[k]=self[k]*nv[k]
+    end)
+    return self
+end
+---inplace add
+---@return Vector
+function Vector:add(nv)
+    self.keys:each(function (k)
+        self[k]=self[k]+nv[k]
+    end)
+    return self
+end
 function Vector:map(func)
     local new_v=self:clone()
     new_v.keys:each(function (k)
@@ -90,7 +106,7 @@ end
 function Vector:__tostring()
     local fmt='%s( %s )'
     local s=self.keys:map(function (key)
-        return string.format('%s: %s',key,self[key])
+        return string.format('%s: %.3f',key,self[key])
     end)
     local str=string.format(fmt,self.name,s:join())
     return str

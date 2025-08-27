@@ -2,6 +2,8 @@ local proto_vector=require('vector')
 --- 2d vector
 ---@class Vec2 :Vector
 ---@overload fun(...):Vec2
+---@operator add(any):Point
+---@operator mul(any):Point
 local Vec2 = proto_vector{name='Vec',default={x=0,y=0}}
 local FP=require('FP')
 local function degree2radian(degree)
