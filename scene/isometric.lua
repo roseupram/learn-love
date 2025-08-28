@@ -48,12 +48,11 @@ function sc:update(dt)
     if lk.isDown('d') then
         dx=dx+1
     end
-    dz=dz*dt; dx=dx*dt
     local cam = self.camera
-    local front = cam:front()
+    local front = cam:front()*cam.wh_ratio -- in glsl, y*=wh_ratio
     local left=cam:left()
     local dv=front*dz+left*dx
-    cam:move(dv)
+    cam:move(dv*dt)
     Time=Time+dt
     my_shader:send('time',Time)
     my_shader:send('camera_param','column',cam:param_mat())
@@ -90,10 +89,10 @@ function sc:new()
     my_mesh:setVertexMap(1,3,2,1,4,3,8,5,6,8,6,7,9,10,11,9,11,12,13,14,15,13,15,16)
     my_shader=lg.newShader('shader/isometric.glsl')
     local w,h=lg.getDimensions()
-    my_shader:send('wh_ratio',w/h)
+    self:resize(w,h)
 end
 function sc:resize(w,h)
-    my_shader:send('wh_ratio',w/h)
+    self.camera.wh_ratio=w/h
     -- spire.content=rectsize(0,0,w,h)
 end
 function sc:wheelmoved(x,y)

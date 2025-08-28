@@ -13,7 +13,6 @@ function love.update(dt)
 end
 
 function love.load()
-
     local font =love.graphics.newFont(18)
     love.graphics.setFont(font)
     print('load')
