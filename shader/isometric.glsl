@@ -1,6 +1,11 @@
 #pragma language glsl3
 uniform float time=0.1;
-
+uniform mat3 tf;
+/*
+x,y,z
+x_rot,y_rot,z_rot,
+x_sc,y_sc,c_sc
+*/
 uniform mat3 camera_param; 
 /*
 (
@@ -90,9 +95,11 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
 
 #endif
 #ifdef PIXEL
-vec4 effect(vec4 base_color, Image tex,vec2 tex_coord, vec2 screen_coord){
-    vec4 c=Texel(tex,tex_coord);
+vec4 effect(vec4 base_color, Image tex_,vec2 tex_coord, vec2 screen_coord){
+    vec4 c=Texel(tex_,tex_coord);
+    c*=base_color;
+    c.r+=sin(time)*.01;
     // c.rgb*=z_value;
-    return base_color*c;
+    return c;
 }
 #endif

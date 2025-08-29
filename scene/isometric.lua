@@ -18,10 +18,11 @@ local tls={
     {2,0,4},
     {2,0,-2}
 }
+local player_tl={3,0,-1}
 local Time=0
 local sc = Pen.Scene{name="Isometric"}
 function sc:draw()
-    local bg_color = {.1,.1,.1}
+    local bg_color = {.2,.3,.3}
     lg.clear(table.unpack(bg_color))
     lg.print(self.name,1,1)
     lg.setShader(my_shader)
@@ -29,6 +30,8 @@ function sc:draw()
         my_shader:send('tl', tl)
         lg.draw(my_mesh)
     end
+    my_shader:send('tl', player_tl)
+    lg.draw(self.player)
     lg.setShader()
 end
 ---@param dt number
@@ -49,17 +52,17 @@ function sc:update(dt)
         dx=dx+1
     end
     local cam = self.camera
-    local front = cam:front()*cam.wh_ratio -- in glsl, y*=wh_ratio
-    local left=cam:left()
+    local front = cam:front_z()*cam.wh_ratio -- in glsl, y*=wh_ratio
+    local left=cam:left_x()
     local dv=front*dz+left*dx
     cam:move(dv*dt)
     Time=Time+dt
     my_shader:send('time',Time)
     my_shader:send('camera_param','column',cam:param_mat())
     local p,d=cam:ray(love.mouse.getPosition())
-    local t= p.y/d.y
+    local t= (p.y-0)/d.y
     local gp=p-d*t
-    tls[3]={gp:unpack()}
+    player_tl=gp:table()
 end
 
 function sc:new()
@@ -69,6 +72,7 @@ function sc:new()
     local vformat={
         {"VertexPosition","float",3},
         {"VertexColor","float",3},
+        {"VertexTexCoord","float",2}
     }
     local vertex={
         { -1, 1,  1,  1, 0, 0 },
@@ -92,7 +96,16 @@ function sc:new()
     my_mesh=lg.newMesh(vformat,vertex,"triangles")
     my_mesh:setVertexMap(1,3,2,1,4,3,8,5,6,8,6,7,9,10,11,9,11,12,13,14,15,13,15,16)
     my_shader=lg.newShader('shader/isometric.glsl')
+    self.player=lg.newMesh(vformat,{
+        {-1,1,0,1,1,1,  0,0},
+        {1,1,0,1,1,1,   1,0},
+        {1,-1,0,1,1,1,  1,1},
+        {-1,-1,0,1,1,1, 0,1},
+    })
+    self.image= lg.newImage("images/player.png")
+    self.player:setTexture(self.image)
     local w,h=lg.getDimensions()
+    -- love.mouse.setVisible(false)
     self:resize(w,h)
 end
 function sc:resize(w,h)

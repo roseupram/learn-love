@@ -25,10 +25,12 @@ end
 function camera:zoom(x)
     self.radius=FP.clamp(self.radius+x,2,30)
 end
-function camera:front()
+--- front vector's project on z axis
+function camera:front_z()
     return Point(0,0,-1):rotate(0,math.rad(self.y_rot),0)
 end
-function camera:left()
+--- left vector's project on x axis
+function camera:left_x()
     return Point(1,0,0):rotate(0,math.rad(self.y_rot),0)
 end
 ---{ {x,y,z}, {x_rot,y_rot,radius},{near,far,wh_ratio} }
@@ -41,19 +43,23 @@ function camera:param_mat()
         {self.near,self.far,self.wh_ratio}
     }
 end
+function camera:rotate_mat()
+    local rx,ry = math.rad(self.x_rot),math.rad(self.y_rot)
+    local m1 = Mat.rotate_mat(rx,0,0)
+    local m2 = Mat.rotate_mat(0,ry,0)
+    local RyRx=m2*m1
+    return RyRx
+end
 ---@return Point
 ---@return Point
 function camera:ray(x,y)
     -- local point_world = Point(x,y/self.wh_ratio,1):rotate(rx,0,0):rotate(0,ry,0)+self.tl
     -- local dir = Point(0,0,-1):rotate(rx,0,0):rotate(0,ry,0)
-    local rx,ry = math.rad(self.x_rot),math.rad(self.y_rot)
-    local m1 = Mat.rotate_mat(rx,0,0)
-    local m2 = Mat.rotate_mat(0,ry,0)
-    local Rxy=m2*m1
     local w,h=love.graphics.getDimensions()
     x=2*x/w-1; y=1-2*y/h;
-    local dir=Rxy*Point(0,0,-1)
-    local point_world=Rxy*Point(x,y/self.wh_ratio,1)+self.tl
+    local RyRx=self:rotate_mat()
+    local dir=RyRx*Point(0,0,-1)
+    local point_world=RyRx*Point(x,y/self.wh_ratio,1)+self.tl
     point_world:mul(self.radius)
     return point_world,dir
 end

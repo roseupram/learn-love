@@ -1,5 +1,14 @@
 -- require('lldebugger').start()
 -- print(_VERSION)
+local function addpath(folder)
+    -- DO NOT use package.path, not works in windows
+    local lf = love.filesystem
+    local fmt='%s;%s/?.lua;%s/?/init.lua'
+    local p=string.format(fmt,lf.getRequirePath(),folder,folder)
+    lf.setRequirePath(p)
+end
+addpath('lib')
+addpath('lib/std')
 local scene=require('scene.isometric')
 
 local root_scene
@@ -13,6 +22,7 @@ function love.update(dt)
 end
 
 function love.load()
+	
     local font =love.graphics.newFont(18)
     love.graphics.setFont(font)
     print('load')
