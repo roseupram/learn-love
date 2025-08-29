@@ -8,25 +8,33 @@ local Array=require('array')
 local FP=require('FP')
 function Vector:new(config)
     config = config or {
-        name = 'Unknown Vector', 
+        name = 'Unknown Vector',
         default = { x = 0, y = 0 }
     }
     self.name=config.name
     local default=config.default
-    self.keys=Array(table.keys(default)):sorted()
+    self.keys=config.keys or Array(table.keys(default)):sorted()
     self:merge(default)
 end
 ---inplace multiply
----@return Vector
 function Vector:mul(nv)
+    if type(nv)=="number" then
+        local num=nv
+        nv=self:clone()
+        nv:set_all(num)
+    end
     self.keys:each(function (k)
         self[k]=self[k]*nv[k]
     end)
     return self
 end
 ---inplace add
----@return Vector
 function Vector:add(nv)
+    if type(nv)=="number" then
+        local num=nv
+        nv=self:clone()
+        nv:set_all(num)
+    end
     self.keys:each(function (k)
         self[k]=self[k]+nv[k]
     end)
@@ -164,10 +172,13 @@ function Vector:__eq(v)
     end)
 end
 function Vector:unpack()
+    return table.unpack(self:table())
+end
+function Vector:table()
     local t={}
     self.keys:each(function (key)
         table.insert(t,self[key])
     end)
-    return table.unpack(t)
+    return t
 end
 return Vector

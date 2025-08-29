@@ -56,6 +56,10 @@ function sc:update(dt)
     Time=Time+dt
     my_shader:send('time',Time)
     my_shader:send('camera_param','column',cam:param_mat())
+    local p,d=cam:ray(love.mouse.getPosition())
+    local t= p.y/d.y
+    local gp=p-d*t
+    tls[3]={gp:unpack()}
 end
 
 function sc:new()
@@ -96,7 +100,7 @@ function sc:resize(w,h)
     -- spire.content=rectsize(0,0,w,h)
 end
 function sc:wheelmoved(x,y)
-    self.camera:zoom(-y/10)
+    self.camera:zoom(-y)
 end
 function sc:keypressed(key,scancode,isrepeat)
     if key=='lalt' then

@@ -60,7 +60,7 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
         0,0,1,0,
         camera_param[0],1);
     float radius = camera_param[1][2];
-    float sc = abs(0.1 /radius);
+    float sc = abs(1.0 /radius);
     mat4 scalate = mat4(
         sc,0,0,0,
         0,sc,0,0,
@@ -81,8 +81,8 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
     // vec4 pos =rotate*scalate*vertex_position;
     vec4 pos =scalate*(vertex_position+vec4(tl,0));
     pos=tf2cam*pos;
-    pos.z*=-1.0/sc; //right hand to left hand and scale back
-    pos.z=(pos.z-near)/(far-near);
+    pos.z*=-1; //right hand to left hand and scale back
+    pos.z=(pos.z/sc-near)/(far-near);
     // z_value=pos.z;
     pos.y*=wh_ratio;
     return pos;
