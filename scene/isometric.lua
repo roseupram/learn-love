@@ -11,12 +11,12 @@ local Pen=require('pen')
 local Camera=require('3d.camera')
 
 
-local my_mesh,my_shader
+local my_mesh,my_shader,data_tl,data_rot,data_sc
 local lg = love.graphics
-local tls={
-    {0,0,0},
-    {2,0,4},
-    {2,0,-2}
+local tfs={
+    {{0,0,0}, {2,0,4}, {2,0,-2}},
+    {{0,0,0}, {0,0,0},{0,0,0}},
+    {{1,1,1},{1,1,1},{1,1,1},}
 }
 local player_tl={3,0,-1}
 local Time=0
@@ -26,17 +26,18 @@ function sc:draw()
     lg.clear(table.unpack(bg_color))
     lg.print(self.name,1,1)
     lg.setShader(my_shader)
-    for i,tl in ipairs(tls) do
-        my_shader:send('tl', tl)
-        lg.draw(my_mesh)
-    end
-    my_shader:send('tl', player_tl)
+    lg.drawInstanced(my_mesh,#tfs[1])
+    -- my_shader:send('tl', player_tl)
     lg.draw(self.player)
     lg.setShader()
 end
 ---@param dt number
 function sc:update(dt)
+    Time=Time+dt
     timer:update(dt)
+    data_tl:setVertex(1,0,0,math.sin(Time))
+    data_rot:setVertex(2,0,Time,0)
+    data_sc:setVertex(3,1,1+math.sin(Time),1)
     local lk=love.keyboard
     local dz, dx = 0, 0
     if lk.isDown('w') then
@@ -56,7 +57,6 @@ function sc:update(dt)
     local left=cam:left_x()
     local dv=front*dz+left*dx
     cam:move(dv*dt)
-    Time=Time+dt
     my_shader:send('time',Time)
     my_shader:send('camera_param','column',cam:param_mat())
     local p,d=cam:ray(love.mouse.getPosition())
@@ -96,6 +96,12 @@ function sc:new()
     my_mesh=lg.newMesh(vformat,vertex,"triangles")
     my_mesh:setVertexMap(1,3,2,1,4,3,8,5,6,8,6,7,9,10,11,9,11,12,13,14,15,13,15,16)
     my_shader=lg.newShader('shader/isometric.glsl')
+    data_tl=lg.newMesh({{'a_tl','float',3}},tfs[1],nil)
+    data_rot=lg.newMesh({{'a_rot','float',3}},tfs[2],nil)
+    data_sc=lg.newMesh({{'a_sc','float',3}},tfs[3],nil)
+    my_mesh:attachAttribute("a_tl",data_tl,"perinstance")
+    my_mesh:attachAttribute("a_rot",data_rot,"perinstance")
+    my_mesh:attachAttribute("a_sc",data_sc,"perinstance")
     self.player=lg.newMesh(vformat,{
         {-1,1,0,1,1,1,  0,0},
         {1,1,0,1,1,1,   1,0},

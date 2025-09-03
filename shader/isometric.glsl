@@ -1,11 +1,5 @@
 #pragma language glsl3
 uniform float time=0.1;
-uniform mat3 tf;
-/*
-x,y,z
-x_rot,y_rot,z_rot,
-x_sc,y_sc,c_sc
-*/
 uniform mat3 camera_param; 
 /*
 (
@@ -14,7 +8,6 @@ x_rot,y_rot,radius
 near,far,wh_ration
 )
 */
-uniform vec3 tl;
 
 mat4 rotate_mat(float x,float y,float z){
     /*
@@ -52,8 +45,31 @@ mat4 rotate_mat(float x,float y,float z){
     return rotate;
 }
 
-varying float z_value;
+mat4 rotate_mat(vec3 rot){
+    return rotate_mat(rot.x,rot.y,rot.z);
+}
+mat4 scale_mat(float x,float y, float z){
+    return mat4(
+        x,0,0,0,  
+        0,y,0,0,  
+        0,0,z,0,  
+        0,0,0,1  
+    );
+}
+mat4 scale_mat(vec3 sc){
+    return scale_mat(sc.x,sc.y,sc.z);
+}
+
+varying vec4 vp;
 #ifdef VERTEX
+attribute vec3 a_tl;
+attribute vec3 a_rot;
+attribute vec3 a_sc;
+/*
+x,y,z
+x_rot,y_rot,z_rot,
+x_sc,y_sc,c_sc
+*/
 vec4 position(mat4 transform_project, vec4 vertex_position){
     float near=camera_param[2].x;
     float far=camera_param[2].y;
@@ -83,8 +99,14 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
     mat4 rotate =rotate_mat(0,y_rot,0)*rotate_mat(x_rot,0,0);
     mat4 tf2world = base_tl*rotate;
     mat4 tf2cam = inverse(tf2world);
+    float tsc = fract(time)+.5;
+    tsc = 1;
+    vp=vertex_position;
+    mat4 self_sc = scale_mat(length(a_sc)!=0?a_sc:vec3(1,1,1));
+    vertex_position=self_sc*rotate_mat(a_rot)*vertex_position;
+    vertex_position+=vec4(a_tl,0);
     // vec4 pos =rotate*scalate*vertex_position;
-    vec4 pos =scalate*(vertex_position+vec4(tl,0));
+    vec4 pos =scalate*(vertex_position);
     pos=tf2cam*pos;
     pos.z*=-1; //right hand to left hand and scale back
     pos.z=(pos.z/sc-near)/(far-near);
@@ -98,7 +120,9 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
 vec4 effect(vec4 base_color, Image tex_,vec2 tex_coord, vec2 screen_coord){
     vec4 c=Texel(tex_,tex_coord);
     c*=base_color;
-    c.r+=sin(time)*.01;
+    if(length(vp.xyz)>sqrt(3)){
+        c *= .5+.5*sin(time);
+    }
     // c.rgb*=z_value;
     return c;
 }

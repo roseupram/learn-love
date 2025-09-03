@@ -2,10 +2,10 @@
 -- print(_VERSION)
 local function addpath(folder)
     -- DO NOT use package.path, not works in windows
-    local lf = love.filesystem
+    local lfs = love.filesystem
     local fmt='%s;%s/?.lua;%s/?/init.lua'
-    local p=string.format(fmt,lf.getRequirePath(),folder,folder)
-    lf.setRequirePath(p)
+    local p=string.format(fmt,lfs.getRequirePath(),folder,folder)
+    lfs.setRequirePath(p)
 end
 addpath('lib')
 addpath('lib/std')
