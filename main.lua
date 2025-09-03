@@ -7,9 +7,6 @@ local function addpath(folder)
     local p=string.format(fmt,lfs.getRequirePath(),folder,folder)
     lfs.setRequirePath(p)
 end
-addpath('lib')
-addpath('lib/std')
-local scene=require('scene.isometric')
 
 local root_scene
 function love.draw()
@@ -23,9 +20,12 @@ end
 
 function love.load()
 	
+    addpath('lib')
+    addpath('lib/std')
     local font =love.graphics.newFont(18)
     love.graphics.setFont(font)
     print('load')
+    local scene=require('scene.isometric')
     root_scene = scene {
         y = 10,
         width = 100,
