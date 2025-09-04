@@ -1,4 +1,4 @@
--- require('lldebugger').start()
+--require('lldebugger').start()
 -- print(_VERSION)
 local function addpath(folder)
     -- DO NOT use package.path, not works in windows

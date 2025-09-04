@@ -1,5 +1,11 @@
+#!/bin/bash
+set -e
 Release_dir="$HOME/desktop"
-# mkdir -p "$Release_dir"
 
-zip "release/game.love" -r * -x release 
-cp "release/game.love" "$Release_dir/"  
+# remove debug
+sed -i.bak /^[^-].*lldebug/s/^/--/ main.lua
+# build a fullscreen game
+sed -i.bak /fullscreen/s/false/true/ conf.lua
+mkdir -p "$Release_dir"
+zip "$Release_dir/game.love" -r * -x release 
+mv -f conf.lua.bak conf.lua
