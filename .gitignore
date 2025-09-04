@@ -1,5 +1,5 @@
 *.bak
-*.ttf
+# *.ttf
 #*.png
 assets
 ref
