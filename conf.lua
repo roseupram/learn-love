@@ -6,10 +6,13 @@ function love.conf(t)
     t.window.width=1024
     t.window.height=768
     t.window.title='raid the gloom'
-    t.window.borderless=false
     -- t.modules.joystick=false
     t.modules.physics=false
-    -- t.window.fullscreen=true
+    -- t.window.fullscreen=false
+    t.window.fullscreen=false
+    t.window.borderless=t.window.fullscreen
+    -- t.window.fullscreentype="exclusive"
+    -- t.window.fullscreentype="desktop"
     t.window.resizable=false
     t.window.depth=16
     t.window.msaa=4

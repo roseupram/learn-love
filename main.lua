@@ -19,7 +19,6 @@ function love.update(dt)
 end
 
 function love.load()
-	
     addpath('lib')
     addpath('lib/std')
     local font =love.graphics.newFont(18)

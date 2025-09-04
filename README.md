@@ -15,7 +15,7 @@ left is x+, up is y+, inward is z+, so that's a **left-hand coordinate**,
 - int and float: `1/100=0; 1.0/100=0.01`
 - RxRy ~= RyRx, inverse(RxRy)=Ry' Rx', change some view
 - mat in glsl is column-major
-- lua 5.1
+- LuaJIT(5.1)
 - lÖve 11.5
 > Conditionals (such as the ones in control structures) consider `false` and `nil` as false and `anything else` as true. Beware that, unlike some other scripting languages, Lua considers both zero and the empty string as true in conditional tests.
 
