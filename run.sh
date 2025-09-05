@@ -5,10 +5,10 @@ if [ "$1" == 'debug' ]; then
 	echo 'debug'
 	# delete -- and spaces
 	# perl -i.bak -pe 's/^--\s*// if /^--.*require.*debug/' main.lua
-	sed -i.bak '/^-\{2,\}.*lldebug/s/^-*//' main.lua
+	make --silent enable-debug
 else
 	echo 'run'
-	sed -i.bak /^[^-].*lldebug/s/^/--/ main.lua
+	make --silent remove-debug
 	# comment
 	# perl -i.bak -pe 's/^/-- / if /^require.*debug/' main.lua
 	# perl -i.bak -pe 's/(.*)/-- \1/ if /^require.*debug/' main.lua
