@@ -9,6 +9,8 @@ local FP=require('FP')
 local timer=require('timer')()
 local Pen=require('pen')
 local Camera=require('3d.camera')
+local Mesh=require('3d.mesh')
+local Shader=require('shader')
 
 
 local my_mesh,my_shader,data_tl,data_rot,data_sc
@@ -29,6 +31,7 @@ function sc:draw()
     lg.drawInstanced(my_mesh,#tfs[1])
     -- my_shader:send('tl', player_tl)
     lg.draw(self.player)
+    self.circle:draw()
     lg.setShader()
 end
 ---@param dt number
@@ -62,7 +65,9 @@ function sc:update(dt)
     local p,d=cam:ray(love.mouse.getPosition())
     local t= (p.y-0)/d.y
     local gp=p-d*t
-    player_tl=gp:table()
+    self.circle:set_position(gp)
+    local scale = FP.sin(Time,.2,1)
+    self.circle:set_scale(scale,1,scale)
 end
 
 function sc:new()
@@ -95,7 +100,7 @@ function sc:new()
     }
     my_mesh=lg.newMesh(vformat,vertex,"triangles")
     my_mesh:setVertexMap(1,3,2,1,4,3,8,5,6,8,6,7,9,10,11,9,11,12,13,14,15,13,15,16)
-    my_shader=lg.newShader('shader/isometric.glsl')
+    my_shader=Shader.new('isometric','frag')
     data_tl=lg.newMesh({{'a_tl','float',3}},tfs[1],nil)
     data_rot=lg.newMesh({{'a_rot','float',3}},tfs[2],nil)
     data_sc=lg.newMesh({{'a_sc','float',3}},tfs[3],nil)
@@ -113,6 +118,12 @@ function sc:new()
     local w,h=lg.getDimensions()
     -- love.mouse.setVisible(false)
     self:resize(w,h)
+    self.circle=Mesh.ring()
+    local plt={
+        red = Color(.9, .2, .2),
+        cyan = Color(.1, .7, .9),
+    }
+    self.circle.color=plt.cyan:clone()
 end
 function sc:resize(w,h)
     self.camera.wh_ratio=w/h

@@ -1,13 +1,6 @@
-#pragma language glsl3
-uniform float time=0.1;
-uniform mat3 camera_param; 
-/*
-(
-x,y,z,
-x_rot,y_rot,radius
-near,far,wh_ration
-)
-*/
+attribute vec3 a_tl;
+attribute vec3 a_rot;
+attribute vec3 a_sc;
 
 mat4 rotate_mat(float x,float y,float z){
     /*
@@ -59,18 +52,7 @@ mat4 scale_mat(float x,float y, float z){
 mat4 scale_mat(vec3 sc){
     return scale_mat(sc.x,sc.y,sc.z);
 }
-
-varying vec4 vp;
-#ifdef VERTEX
-attribute vec3 a_tl;
-attribute vec3 a_rot;
-attribute vec3 a_sc;
-/*
-x,y,z
-x_rot,y_rot,z_rot,
-x_sc,y_sc,c_sc
-*/
-vec4 position(mat4 transform_project, vec4 vertex_position){
+vec4 isometric_project(mat3 camera_param, vec4 vertex_position){
     float near=camera_param[2].x;
     float far=camera_param[2].y;
     float wh_ratio=camera_param[2].z;
@@ -101,7 +83,6 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
     mat4 tf2cam = inverse(tf2world);
     float tsc = fract(time)+.5;
     tsc = 1;
-    vp=vertex_position;
     mat4 self_sc = scale_mat(length(a_sc)!=0?a_sc:vec3(1,1,1));
     vertex_position=self_sc*rotate_mat(a_rot)*vertex_position;
     vertex_position+=vec4(a_tl,0);
@@ -114,16 +95,3 @@ vec4 position(mat4 transform_project, vec4 vertex_position){
     pos.y*=wh_ratio;
     return pos;
 }
-
-#endif
-#ifdef PIXEL
-vec4 effect(vec4 base_color, Image tex_,vec2 tex_coord, vec2 screen_coord){
-    vec4 c=Texel(tex_,tex_coord);
-    c*=base_color;
-    if(length(vp.xyz)>sqrt(3)){
-        c *= .5+.5*sin(time);
-    }
-    // c.rgb*=z_value;
-    return c;
-}
-#endif

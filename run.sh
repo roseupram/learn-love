@@ -13,6 +13,7 @@ else
 	# perl -i.bak -pe 's/^/-- / if /^require.*debug/' main.lua
 	# perl -i.bak -pe 's/(.*)/-- \1/ if /^require.*debug/' main.lua
 fi
+make --silent shader-compile
 cmd='love'
 if ! type $cmd &>/dev/null ;then
 	echo $cmd not found!

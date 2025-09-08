@@ -4,3 +4,4 @@
 assets
 ref
 *.love
+*.out.glsl

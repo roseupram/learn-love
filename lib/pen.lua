@@ -320,7 +320,7 @@ function Line:draw()
     love.graphics.pop()
 end
 Pen.Line=Line
----@class Mesh:Scene
+---@class Mesh2D:Scene
 ---@field vertex table
 ---@field mode 'fan'|'triangles'
 ---@field usage 'dynamic'|'static'|'stream'
