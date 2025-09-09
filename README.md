@@ -3,6 +3,10 @@ so element do not need style, just need class
 No, still need style, for animation, rotation 
 # learn-love
 
+## How to run
+- install [love2d](https://love2d.org/) if you have no love2d
+- download [game.love](https://github.com/roseupram/learn-love/releases) and click to run
+
 ## note
 - offset -> rotation -> scaling 
 - use `Array:push`, DO NOT use `Array.push`
