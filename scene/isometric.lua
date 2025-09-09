@@ -30,7 +30,7 @@ function sc:draw()
     lg.setShader(my_shader)
     lg.drawInstanced(my_mesh,#tfs[1])
     -- my_shader:send('tl', player_tl)
-    lg.draw(self.player)
+    self.player:draw()
     self.circle:draw()
     lg.setShader()
 end
@@ -40,7 +40,7 @@ function sc:update(dt)
     timer:update(dt)
     data_tl:setVertex(1,0,0,math.sin(Time))
     data_rot:setVertex(2,0,Time,0)
-    data_sc:setVertex(3,1,1+math.sin(Time),1)
+    data_sc:setVertex(3,1,FP.sin(Time,1.2,.2),1)
     local lk=love.keyboard
     local dz, dx = 0, 0
     if lk.isDown('w') then
@@ -65,7 +65,11 @@ function sc:update(dt)
     local p,d=cam:ray(love.mouse.getPosition())
     local t= (p.y-0)/d.y
     local gp=p-d*t
-    self.circle:set_position(gp)
+    self.circle:set_position(gp-Point(0,.0,0))
+    local player_pos=self.player:get_position()
+    local velocity = gp:add(Point(0,.9,0))-player_pos
+    local P=3
+    self.player:move(velocity*dt*P)
     local scale = FP.sin(Time,.2,1)
     self.circle:set_scale(scale,1,scale)
 end
@@ -107,14 +111,15 @@ function sc:new()
     my_mesh:attachAttribute("a_tl",data_tl,"perinstance")
     my_mesh:attachAttribute("a_rot",data_rot,"perinstance")
     my_mesh:attachAttribute("a_sc",data_sc,"perinstance")
-    self.player=lg.newMesh(vformat,{
-        {-1,1,0,1,1,1,  0,0},
-        {1,1,0,1,1,1,   1,0},
-        {1,-1,0,1,1,1,  1,1},
-        {-1,-1,0,1,1,1, 0,1},
-    })
+    self.player = Mesh { vertex = {
+        { -1, 1,  0, 1, 1, 1, 0, 0 },
+        { 1,  1,  0, 1, 1, 1, 1, 0 },
+        { 1,  -1, 0, 1, 1, 1, 1, 1 },
+        { -1, -1, 0, 1, 1, 1, 0, 1 },
+    }
+    }
     self.image= lg.newImage("images/player.png")
-    self.player:setTexture(self.image)
+    self.player._mesh:setTexture(self.image)
     local w,h=lg.getDimensions()
     -- love.mouse.setVisible(false)
     self:resize(w,h)

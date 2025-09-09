@@ -1,5 +1,6 @@
 local pt=require('prototype')
 local Color=require('color')
+local Point=require('3d.point')
 ---@class Mesh
 local mesh = pt{
     name = "Mesh",
@@ -37,17 +38,25 @@ function mesh.ring()
     return mesh{vertex=v,mode='strip'}
 end
 function mesh:new(ops)
-    self._mesh=love.graphics.newMesh(vformat,ops.vertex,ops.mode)
+    self._mesh=love.graphics.newMesh(vformat,ops.vertex,ops.mode or 'fan')
     self.color=Color()
     self._tl=love.graphics.newMesh({{"a_tl","float",3}},{{0,0,0}},nil)
     self._scale=love.graphics.newMesh({{"a_sc","float",3}},{{1,1,1}},nil)
     self._mesh:attachAttribute("a_tl",self._tl,"perinstance")
     self._mesh:attachAttribute("a_sc",self._scale,"perinstance")
 end
----comment
 ---@param p3d Point
 function mesh:set_position(p3d)
     self._tl:setVertex(1,p3d:unpack())
+end
+---@return Point
+function mesh:get_position()
+    local pos=Point(self._tl:getVertex(1))
+    return pos
+end
+function mesh:move(dv)
+    local pos=self:get_position()
+    self:set_position(pos:add(dv))
 end
 function mesh:set_scale(p3d,y,z)
     if type(p3d)=='number' then

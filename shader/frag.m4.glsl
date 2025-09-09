@@ -5,5 +5,6 @@ vec4 effect(vec4 base_color, Image tex, vec2 tex_coord,vec2 screen_coord){
     vec4 tex_color= Texel(tex,tex_coord);
     vec4 pixel=tex_color*base_color;
     pixel.r+=fract(time)*.001;
+    gl_FragDepth = gl_FragCoord.z+float(pixel.a<.001);
     return pixel;
 }
