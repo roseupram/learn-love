@@ -6,6 +6,7 @@ No, still need style, for animation, rotation
 ## How to run
 - install [love2d](https://love2d.org/) if you have no love2d
 - download [game.love](https://github.com/roseupram/learn-love/releases) and click to run
+- view control: `wasd` to move, `alt+mouse` to rotate
 
 ## note
 - offset -> rotation -> scaling 
