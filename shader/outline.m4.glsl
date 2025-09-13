@@ -1,6 +1,11 @@
-uniform float lw = .1;
-const float Threshod=.5;
+include(`isometric.m4.glsl')
+
+#ifdef PIXEL
+//start of frag
+uniform float lw = .01;
+float Threshod=.5;
 uniform vec4 edge_color = vec4(.9, .6, .1, .9);
+
 
 bool on_edge(Image tex, vec2 uv, float width) {
     bool res = false;
@@ -19,5 +24,9 @@ vec4 effect(vec4 base_color, Image tex, vec2 uv, vec2 screen_coords) {
     if (lw > 0 && texcolor.a < Threshod && on_edge(tex, uv, lw)) {
         texcolor = edge_color;
     }
+    texcolor.r+=fract(time)*.001;
+    gl_FragDepth = gl_FragCoord.z+float(texcolor.a<.001);
     return texcolor * base_color;
 }
+#endif
+//end of frag

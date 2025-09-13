@@ -13,12 +13,16 @@ function shader.new(vert,frag)
             _cache[vert]=lfs.read(path)
         end
     end
-    if not _cache[frag] then
+    if frag and not _cache[frag] then
         local path=shader.full_path(frag)
         if lfs.getInfo(path) then
             _cache[frag]=lfs.read(path)
         end
     end
-    return lg.newShader(_cache[frag],_cache[vert])
+    if frag then
+        return lg.newShader(_cache[frag], _cache[vert])
+    else
+        return lg.newShader(_cache[vert])
+    end
 end
 return shader

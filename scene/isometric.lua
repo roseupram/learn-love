@@ -30,8 +30,9 @@ function sc:draw()
     lg.setShader(my_shader)
     lg.drawInstanced(my_mesh,#tfs[1])
     -- my_shader:send('tl', player_tl)
-    self.player:draw()
-    self.circle:draw()
+    for i,child in ipairs(self.children) do
+        child:draw()
+    end
     lg.setShader()
 end
 ---@param dt number
@@ -62,12 +63,13 @@ function sc:update(dt)
     cam:move(dv*dt)
     my_shader:send('time',Time)
     my_shader:send('camera_param','column',cam:param_mat())
+    self.player.shader:send('camera_param','column',cam:param_mat())
     local p,d=cam:ray(love.mouse.getPosition())
     local t= (p.y-0)/d.y
     local gp=p-d*t
-    self.circle:set_position(gp-Point(0,.0,0))
+    self.circle:set_position(gp-Point(0,.99,0))
     local player_pos=self.player:get_position()
-    local velocity = gp:add(Point(0,.9,0))-player_pos
+    local velocity = gp+Point(0,.0,0)-player_pos
     local P=3
     self.player:move(velocity*dt*P)
     local scale = FP.sin(Time,.2,1)
@@ -108,9 +110,11 @@ function sc:new()
     data_tl=lg.newMesh({{'a_tl','float',3}},tfs[1],nil)
     data_rot=lg.newMesh({{'a_rot','float',3}},tfs[2],nil)
     data_sc=lg.newMesh({{'a_sc','float',3}},tfs[3],nil)
+    local cmesh=lg.newMesh({{'a_color','float',4}},{{1,1,1,1},{1,1,1,1},{1,1,1,1}},nil)
     my_mesh:attachAttribute("a_tl",data_tl,"perinstance")
     my_mesh:attachAttribute("a_rot",data_rot,"perinstance")
     my_mesh:attachAttribute("a_sc",data_sc,"perinstance")
+    my_mesh:attachAttribute("a_color",cmesh,"perinstance")
     self.player = Mesh { vertex = {
         { -1, 1,  0, 1, 1, 1, 0, 0 },
         { 1,  1,  0, 1, 1, 1, 1, 0 },
@@ -120,6 +124,8 @@ function sc:new()
     }
     self.image= lg.newImage("images/player.png")
     self.player._mesh:setTexture(self.image)
+    self.player.shader=Shader.new("outline")
+    self.player.shader:send('edge_color',{.9,.5,.3,1})
     local w,h=lg.getDimensions()
     -- love.mouse.setVisible(false)
     self:resize(w,h)
@@ -128,7 +134,20 @@ function sc:new()
         red = Color(.9, .2, .2),
         cyan = Color(.1, .7, .9),
     }
-    self.circle.color=plt.cyan:clone()
+    self.circle:color_tone(plt.cyan:clone())
+    self:push(self.player,"player")
+    self:push(self.circle,"circle")
+    local line= Mesh.line{
+        points = {
+            0, 0, 1,
+            2, 0, 0,
+            0, 0, -1,
+            1, 0, .7,
+            1, 0, -.7,
+        }
+    }
+    line:set_position(Point(-2,-1,4))
+    self:push(line,"line")
 end
 function sc:resize(w,h)
     self.camera.wh_ratio=w/h

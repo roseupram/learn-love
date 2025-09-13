@@ -9,6 +9,8 @@ No, still need style, for animation, rotation
 - view control: `wasd` to move, `alt+mouse` to rotate
 
 ## note
+- Don't use `love.graphics.setColor()` for 3d render, it conflicts with vertex color
+- by default, `alpha=0` also contribute to depth
 - offset -> rotation -> scaling 
 - use `Array:push`, DO NOT use `Array.push`
 - `__index`: when the key not found in table, search the key in __index

@@ -1,5 +1,6 @@
 local ptt=require('prototype')
-local Point=require('3d.point')
+local path=(...):gsub("[^.]+$","") -- remove last name
+local Point=require(path..'point')
 ---@class Mat4:prototype
 local mat=ptt{name="Mat4"}
 function mat.identity()

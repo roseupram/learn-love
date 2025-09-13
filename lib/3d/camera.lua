@@ -1,8 +1,9 @@
 local prototype=require('prototype')
-local Point=require('3d.point')
-local Mat=require('3d.mat')
 local FP=require('FP')
 
+local path=(...):gsub("[^.]+$","") -- remove last name
+local Point=require(path..'point')
+local Mat=require(path..'mat')
 ---@class Camera:prototype
 ---@overload fun(...):Camera
 local camera=prototype{name="Camera"}

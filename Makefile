@@ -17,7 +17,7 @@ $(LOVE_FILE):
 	sed -i.bak /fullscreen/s/false/true/ conf.lua
 	mkdir -p $(Release_dir)
 	@echo "zip to love"
-	zip $@ -ru * -x release "*.bak" "*.m4.glsl"
+	zip $@ -ru * -x release "*.bak" "*.m4.glsl" "shader/lib/*" 
 
 remove-debug: main.lua
 	@echo "remove debug"
@@ -37,5 +37,5 @@ print:
 	echo $(SHADER_OUT)
 shader-compile: $(SHADER_OUT)
 
-%.out.glsl: %.m4.glsl | shader/lib/*
+%.out.glsl: %.m4.glsl shader/isometric.m4.glsl | shader/lib/*
 	m4 -I shader $< > $@

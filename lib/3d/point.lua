@@ -2,6 +2,7 @@ local vp = require('vector')
 ---@class Point:Vector
 ---@overload fun(...):Point
 ---@operator add(number|Point):Point
+---@operator sub(number|Point):Point
 ---@operator mul(number|Point):Point
 ---@field mul fun(self:Point,v:number|Point):Point
 ---@field add fun(self:Point,v:number|Point):Point
@@ -10,6 +11,9 @@ local point = vp {
     default = { x = 0, y = 0, z = 0 },
 }
 function point:new(x,y,z)
+    if type(x) =='table' then
+        x,y,z=unpack(x)
+    end
     self.x=x
     self.y=y
     self.z=z
