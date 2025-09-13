@@ -4,6 +4,7 @@ local path=(...):gsub("[^.]+$","") -- remove last name
 ---@type Point
 local Point=require(path..'point')
 ---@class Mesh
+---@overload fun(ops:{vmap:table,vertex:table,mode:string}):Mesh
 local mesh = protype{
     name = "Mesh",
 }
@@ -80,9 +81,6 @@ function mesh.line(ops)
         if not_last_one then
             dir = points[i+1]-points[i]
         end
-        -- if i%2==0 then
-        --     r_angel=-r_angel
-        -- end
         local perpendicu=dir:rotate(0,r_angel,0):normal()
         local half_lw=lw/2.0
 
@@ -94,50 +92,74 @@ function mesh.line(ops)
     -- return mesh{vertex=v,mode='triangles'}
     return mesh{vertex=v,mode='strip'}
 end
+
 function mesh:new(ops)
-    self._mesh=love.graphics.newMesh(vformat,ops.vertex,ops.mode or 'fan')
-    self.color=Color()
-    self._tl=love.graphics.newMesh({{"a_tl","float",3}},{{0,0,0}},nil)
-    self._scale=love.graphics.newMesh({{"a_sc","float",3}},{{1,1,1}},nil)
-    self._color=love.graphics.newMesh({{'a_color',"float",4}},{{1,1,1,1}},nil)
-    self._mesh:attachAttribute("a_tl",self._tl,"perinstance")
-    self._mesh:attachAttribute("a_sc",self._scale,"perinstance")
-    self._mesh:attachAttribute("a_color",self._color,"perinstance")
-    if ops.map then
-        self._mesh:setVertexMap(ops.map)
+    self._mesh=love.graphics.newMesh(ops.vformat or vformat,ops.vertex,ops.mode or 'fan')
+    self.instance=ops.instance or 0
+    local dfv = {
+        sc={{1,1,1}},
+        color = { { 1, 1, 1, 1 } },
+        fallback = { { 0, 0, 0 } }
+    }
+    for i,k in ipairs{"tl","sc","color","rot"} do
+        local key="_"..k
+        local attribute="a_"..k
+        local data = ops[k] or dfv[k] or dfv["fallback"]
+        self[key]=love.graphics.newMesh({{attribute,"float",3}},data,nil)
+        self._mesh:attachAttribute(attribute, self[key], "perinstance")
+    end
+    if ops.vmap then
+        self._mesh:setVertexMap(ops.vmap)
+    end
+    if ops.texture then
+        self._mesh:setTexture(ops.texture)
     end
     self.outline=ops.outline or 0
 end
----@param p3d Point
-function mesh:set_position(p3d)
-    self._tl:setVertex(1,p3d:unpack())
+local function resolve_index_data(index,data)
+    if type(index)~="number" then
+        data=index
+        index=1
+    end
+    return index,data
+end
+---@param index Point|number
+---@param p3d Point|nil
+function mesh:set_position(index, p3d)
+    index ,p3d=resolve_index_data(index,p3d)
+    self._tl:setVertex(index,p3d:unpack())
 end
 ---@return Point
-function mesh:get_position()
-    local pos=Point(self._tl:getVertex(1))
+function mesh:get_position(index)
+    local pos=Point(self._tl:getVertex(index or 1))
     return pos
 end
-function mesh:move(dv)
+function mesh:move(index,dv)
+    index ,dv=resolve_index_data(index,dv)
     local pos=self:get_position()
-    self:set_position(pos:add(dv))
+    self:set_position(index,pos:add(dv))
 end
-function mesh:set_scale(p3d,y,z)
-    if type(p3d)=='number' then
-        local x=p3d
-        self._scale:setVertex(1,x,y,z)
-    else
-        self._scale:setVertex(1,p3d:unpack())
-    end
+function mesh:set_scale(index,p3d)
+    index,p3d=resolve_index_data(index,p3d)
+    self._sc:setVertex(index, p3d:unpack())
 end
 function mesh:color_tone(color)
     self._color:setVertex(1,color:unpack())
+end
+function mesh:set_rotate(index,p3d)
+    index,p3d=resolve_index_data(index,p3d)
+    self._rot:setVertex(index, p3d:unpack())
 end
 function mesh:draw()
     love.graphics.push('all')
     if self.shader then
          love.graphics.setShader(self.shader)
     end
-    love.graphics.draw(self._mesh)
+    if self.instance>0 then
+        love.graphics.drawInstanced(self._mesh,self.instance)
+    else
+        love.graphics.draw(self._mesh)
+    end
     love.graphics.pop()
 end
 

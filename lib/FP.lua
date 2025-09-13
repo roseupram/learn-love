@@ -47,7 +47,7 @@ function FP.relu(x)
         return 0
     end
 end
-function FP.sin(x,max,min)
+function FP.sin(x,min,max)
     max=max or 1
     min=min or -1
     local base=(max+min)/2

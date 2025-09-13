@@ -140,7 +140,7 @@ function scene:global(x,y)
     self.y = y / h * 100
 end
 --- add to .children
----@param child Scene
+---@param child Scene|any
 ---@param name string|nil
 function scene:push(child,name)
     assert(child,"child can not be nil")

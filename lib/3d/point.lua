@@ -33,9 +33,9 @@ function point:rotate(x,y,z)
     local sy,cy=sin(y),cos(y)
     local sz,cz=sin(z),cos(z)
     ---rotate_mat * self
-    local ax = point(cy, sx*sy, sy*cx)
-    local ay = point(0, cx, -sx)
-    local az = point(-sy, cy*sx, cx*cy)
+    local ax = point(cy*cz+sz*sx*sy, -sz*cy+cz*sx*sy, sy*cx)
+    local ay = point(sz*cx, cz* cx, -sx)
+    local az = point(-sy*cz+sz*sx*cy, sz*sy+cz*cy*sx, cx*cy)
     return point(
         ax:dot(self),
         ay:dot(self),
