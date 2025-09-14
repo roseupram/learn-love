@@ -139,16 +139,30 @@ function sc:new()
     self:push(self.circle,"circle")
     local line= Mesh.line{
         points = {
-            0, 0, 1,
-            2, 0, 0,
-            0, 0, -1,
-            1, 0, .7,
-            1, 0, -.7,
+            -1, 0, 0,
+            0, 2, 0,
+            1, 0, 0,
+            -.7, 1, 0,
+            .7, 1, 0,
         },
+        normal=Point(0,0,1)
     }
-    line:set_position(1,Point(-2,-1,4))
+    line:set_position(Point(-2,-1,4))
+    line:set_scale(Point(.5,.5,.5))
     line:color_tone(Color(.9,.5,.9))
     self:push(line,"line")
+    local arrow= Mesh.line{
+        points = {
+            0,0,0,
+            3,0,0,
+            2,0,-1,
+            2,0,1,
+            3,0,0,
+            2,0,-1,
+        },
+    }
+    arrow:set_position(Point(4,0,4))
+    self:push(arrow,"arrow")
 end
 function sc:resize(w,h)
     self.camera.wh_ratio=w/h

@@ -84,7 +84,7 @@ vec4 isometric_project(mat3 camera_param, vec4 vertex_position){
     float tsc = fract(time)+.5;
     tsc = 1;
     mat4 self_sc = scale_mat(length(a_sc)!=0?a_sc:vec3(1,1,1));
-    vertex_position=self_sc*rotate_mat(a_rot)*vertex_position;
+    vertex_position=self_sc*rotate_mat(-a_rot)*vertex_position;
     vertex_position+=vec4(a_tl,0);
     // vec4 pos =rotate*scalate*vertex_position;
     vec4 pos =scalate*(vertex_position);

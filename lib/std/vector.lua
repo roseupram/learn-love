@@ -40,6 +40,13 @@ function Vector:add(nv)
     end)
     return self
 end
+---func(v,k,self)
+---@param func function
+function Vector:each(func)
+    self.keys:each(function (k)
+        func(self[k],k,self)
+    end)
+end
 function Vector:map(func)
     local new_v=self:clone()
     new_v.keys:each(function (k)

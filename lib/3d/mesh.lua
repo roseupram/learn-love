@@ -49,6 +49,7 @@ function mesh.line(ops)
     1,0,.7,
     1,0,-.7,
     }
+    ---@type Point[]
     local points={}
     local ps_type=type(ops.points[1])
     local ps = ops.points
@@ -65,12 +66,15 @@ function mesh.line(ops)
     
     local v={}
     local dir
+    local deg90 = math.pi / 2
+    local rot=ops.normal or Point(0,1,0)
+    rot:mul(deg90)
     local lw=.2
     for i,point in ipairs(points) do
         local not_last_one=points[i+1]~=nil
-        local r_angel=math.pi/2
         if i>1 and not_last_one then
-            local perpendicu = dir:rotate(0, r_angel, 0):normal()
+            -- for previous vertex
+            local perpendicu = dir:rotate(rot:unpack()):normal()
             local half_lw = lw / 2.0
 
             local x, y, z = (point + perpendicu * half_lw):unpack()
@@ -81,7 +85,8 @@ function mesh.line(ops)
         if not_last_one then
             dir = points[i+1]-points[i]
         end
-        local perpendicu=dir:rotate(0,r_angel,0):normal()
+        -- for next vertex
+        local perpendicu=dir:rotate(rot:unpack()):normal()
         local half_lw=lw/2.0
 
         local x,y,z=(point+perpendicu*half_lw):unpack()

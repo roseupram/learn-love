@@ -37,5 +37,5 @@ print:
 	echo $(SHADER_OUT)
 shader-compile: $(SHADER_OUT)
 
-%.out.glsl: %.m4.glsl shader/isometric.m4.glsl | shader/lib/*
+%.out.glsl: %.m4.glsl shader/isometric.m4.glsl  shader/lib/*
 	m4 -I shader $< > $@
