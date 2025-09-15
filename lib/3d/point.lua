@@ -18,6 +18,12 @@ function point:new(x,y,z)
     self.y=y
     self.z=z
 end
+--- cross product
+function point:cross(p)
+    local x,y,z=self:unpack()
+    local u,v,w=p:unpack()
+    return point(y*w-v*z,u*z-x*w,x*v-u*y)
+end
 function point:rotate(x,y,z)
     local zero_cnt=0;
     for i,v in ipairs{x,y,z} do

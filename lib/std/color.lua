@@ -17,6 +17,16 @@ function Color:new(r,g,b,a)
     self.b=b
     self.a=a
 end
+function Color.hex(hex)
+    if hex:find('#')==1 then
+        hex=hex:sub(2)
+    end
+    local t={}
+    for i=1,6,2 do
+        table.insert(t,tonumber(hex:sub(i,i+1),16)/255)
+    end
+    return Color(unpack(t))
+end
 function Color:table()
     return {self.r,self.g,self.b,self.a}
 end

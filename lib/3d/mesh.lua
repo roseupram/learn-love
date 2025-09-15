@@ -99,7 +99,11 @@ function mesh.line(ops)
 end
 
 function mesh:new(ops)
-    self._mesh=love.graphics.newMesh(ops.vformat or vformat,ops.vertex,ops.mode or 'fan')
+    self.vertex=ops.vertex
+    self.mode=ops.mode  or 'fan'
+    self.vformat=ops.vformat or vformat
+    self.usage=ops.usage or 'static'
+    self._mesh = love.graphics.newMesh(self.vformat, self.vertex, self.mode,self.usage)
     self.instance=ops.instance or 0
     local dfv = {
         sc={{1,1,1}},
@@ -120,6 +124,40 @@ function mesh:new(ops)
         self._mesh:setTexture(ops.texture)
     end
     self.outline=ops.outline or 0
+end
+--- { 
+---     {n,high,low},
+---     ...
+--- }
+function mesh:get_aabb()
+    local pos=self:get_position()
+    if not self.mesh_aabb then
+        local low=Point()
+        local high=Point()
+        for i,v in ipairs(self.vertex) do
+            local vp=Point(v[1],v[2],v[3])
+            low:each(function (value,key)
+                low[key]= math.min(value,vp[key])
+            end)
+            high:each(function (value,key)
+                high[key]= math.max(value,vp[key])
+            end)
+        end
+        local faces={}
+        local n=Point(0,0,1)
+        local lp= (high-low)*n+low
+        local face={n,high,lp}
+        table.insert(faces,face)
+        self.mesh_aabb = faces
+    end
+    local aabb={}
+    for i,face in ipairs(self.mesh_aabb) do
+        local n,h,l=unpack(face)
+        table.insert(aabb,{
+            n,h+pos,l+pos
+        })
+    end
+    return  aabb
 end
 local function resolve_index_data(index,data)
     if type(index)~="number" then

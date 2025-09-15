@@ -19,7 +19,7 @@ local sc = Pen.Scene{name="Isometric"}
 function sc:draw()
     local bg_color = {.2,.3,.3}
     lg.clear(table.unpack(bg_color))
-    lg.print(self.name,1,1)
+    lg.print(self.name..'\nFPS:'..love.timer.getFPS(),1,1)
     lg.setShader(my_shader)
     local cam = self.camera
     for i,child in ipairs(self.children) do
@@ -60,13 +60,33 @@ function sc:update(dt)
     my_shader:send('time',Time)
     my_shader:send('camera_param','column',cam:param_mat())
     local p,d=cam:ray(love.mouse.getPosition())
-    local t= (p.y-0)/d.y
+    --- mesh {A,B,C}
+    -- t = Ap:dot(AB:cross(BC))/(d:dot(n))
+    -- p_in_plane=t*p+d
+    -- local t= (p.y-0)/d.y
+    local A=Point(0,0,0)
+    local n=Point(0,1,0)
+    local t=(p-A):dot(n)/(d:dot(n))
     local gp=p-d*t
     self.circle:set_position(gp-Point(0,.99,0))
     local player_pos=self.player:get_position()
-    local velocity = gp+Point(0,.0,0)-player_pos
+    local velocity = gp-player_pos
     local P=3
     self.player:move(velocity*dt*P)
+    local wall=self:get('wall')
+    local aabb=wall:get_aabb()
+    do
+        local dvdt =velocity*dt*p
+        local n,h,l=unpack(aabb[1])
+            
+        -- local t = (player_pos-h):dot(n)
+            local t = (player_pos - h):dot(n) / (dvdt:dot(n))
+            if t<1 and t>0 then
+            print("t: ", t)
+            self.player:move(dvdt:mul(-1))
+            end
+    end
+
     local scale = FP.sin(Time,.2,1)
     self.circle:set_scale(Point(scale,1,scale))
     local cube=self:get('cube')
@@ -161,8 +181,19 @@ function sc:new()
             2,0,-1,
         },
     }
-    arrow:set_position(Point(4,0,4))
+    arrow:set_position(Point(4,-1,4))
     self:push(arrow,"arrow")
+    local wall = Mesh{
+        vertex={
+            {-2,-1,0,1,1,1,0,0},
+            {-2,1,0,1,1,1,0,0},
+            {2,1,0,1,1,1,0,0},
+            {2,-1,0,1,1,1,0,0},
+        }
+    }
+    wall:set_position(Point(1,0,3))
+    wall:color_tone(Color.hex('#7a573d'))
+    self:push(wall,"wall")
 end
 function sc:resize(w,h)
     self.camera.wh_ratio=w/h
