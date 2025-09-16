@@ -160,7 +160,7 @@ function Vector:sum()
 end
 function Vector:normal()
     local len=self:len()
-    if len==0 then
+    if len==0 or len==1 then
         return self
     else
         local scale_2_normal=1/len

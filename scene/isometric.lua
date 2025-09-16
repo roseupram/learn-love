@@ -75,20 +75,16 @@ function sc:update(dt)
     local wall=self:get('wall')
     local aabb=wall:get_aabb()
     do
+        local face= aabb[1]
         local dvdt =velocity*dt*P
-        local n,h,l=unpack(aabb[1])
+        local n=face.normal
             
         -- local t = (player_pos-h):dot(n)
         local vnormal = velocity:normal()
-        local hp=player_pos - h
-        local lp=player_pos - l
-        local up_v=Point(0,1,0)
-        local t_hp=n:cross(hp):dot(up_v)
-        local t_lp=n:cross(lp):dot(up_v)
-        local dist = math.abs(hp:dot(n))
-        local t =  dist/ (vnormal:dot(n))
-        print("t: ", t)
-        if t <= dvdt:len() and t >= -dvdt:len() and t_hp*t_lp<0 then
+        local t_ = face:raytest(player_pos,vnormal)
+        local sign= FP.sign(vnormal:dot(n))
+        -- BUG sometimes snap to wall 
+        if t_ and sign*t_ > 0 and sign*t_ <= dvdt:len()then
             print("vnormal: ",vnormal)
             local tangen=(vnormal-n*(vnormal:dot(n)))
             dvdt=tangen*dt*P

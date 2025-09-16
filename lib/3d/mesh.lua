@@ -1,4 +1,5 @@
 local protype=require('prototype')
+local Face=require("3d.face")
 local Color=require('color')
 local path=(...):gsub("[^.]+$","") -- remove last name
 ---@type Point
@@ -135,7 +136,7 @@ function mesh:get_aabb()
         local low=Point()
         local high=Point()
         for i,v in ipairs(self.vertex) do
-            local vp=Point(v[1],v[2],v[3])
+            local vp=Point(v[1],v[2],v[3]) -- one vertex
             low:each(function (value,key)
                 low[key]= math.min(value,vp[key])
             end)
@@ -146,18 +147,12 @@ function mesh:get_aabb()
         local faces={}
         local n=Point(0,0,1)
         local lp= (high-low)*n+low
-        local face={n,high,lp}
+        -- local face={n,high,lp}
+        local face=Face{normal=n,hl={high:add(pos),lp:add(pos)}}
         table.insert(faces,face)
         self.mesh_aabb = faces
     end
-    local aabb={}
-    for i,face in ipairs(self.mesh_aabb) do
-        local n,h,l=unpack(face)
-        table.insert(aabb,{
-            n,h+pos,l+pos
-        })
-    end
-    return  aabb
+    return  self.mesh_aabb
 end
 local function resolve_index_data(index,data)
     if type(index)~="number" then
