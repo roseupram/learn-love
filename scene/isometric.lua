@@ -72,19 +72,29 @@ function sc:update(dt)
     local player_pos=self.player:get_position()
     local velocity = gp-player_pos
     local P=3
-    self.player:move(velocity*dt*P)
     local wall=self:get('wall')
     local aabb=wall:get_aabb()
     do
-        local dvdt =velocity*dt*p
+        local dvdt =velocity*dt*P
         local n,h,l=unpack(aabb[1])
             
         -- local t = (player_pos-h):dot(n)
-            local t = (player_pos - h):dot(n) / (dvdt:dot(n))
-            if t<1 and t>0 then
-            print("t: ", t)
-            self.player:move(dvdt:mul(-1))
-            end
+        local vnormal = velocity:normal()
+        local hp=player_pos - h
+        local lp=player_pos - l
+        local up_v=Point(0,1,0)
+        local t_hp=n:cross(hp):dot(up_v)
+        local t_lp=n:cross(lp):dot(up_v)
+        local dist = math.abs(hp:dot(n))
+        local t =  dist/ (vnormal:dot(n))
+        print("t: ", t)
+        if t <= dvdt:len() and t >= -dvdt:len() and t_hp*t_lp<0 then
+            print("vnormal: ",vnormal)
+            local tangen=(vnormal-n*(vnormal:dot(n)))
+            dvdt=tangen*dt*P
+            print("dvdt: ", dvdt)
+        end
+        self.player:move(dvdt)
     end
 
     local scale = FP.sin(Time,.2,1)
