@@ -170,6 +170,11 @@ end
 function Vector:sign()
     return self:map(FP.sign)
 end
+function Vector:project_to(n)
+    n=n:normal()
+    local l = self:dot(n)
+    return n*l
+end
 function Vector:abs()
     return self:map(math.abs)
 end

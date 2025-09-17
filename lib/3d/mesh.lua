@@ -126,17 +126,15 @@ function mesh:new(ops)
     end
     self.outline=ops.outline or 0
 end
---- { 
----     {n,high,low},
----     ...
---- }
 function mesh:get_aabb()
     local pos=self:get_position()
     if not self.mesh_aabb then
         local low=Point()
         local high=Point()
+        local vs = {}
         for i,v in ipairs(self.vertex) do
             local vp=Point(v[1],v[2],v[3]) -- one vertex
+            table.insert(vs,vp)
             low:each(function (value,key)
                 low[key]= math.min(value,vp[key])
             end)
@@ -145,11 +143,14 @@ function mesh:get_aabb()
             end)
         end
         local faces={}
-        local n=Point(0,0,1)
+        local AB = vs[2]-vs[1]
+        local BC = vs[3]-vs[2]
+        local n=AB:cross(BC):normal()
         local lp= (high-low)*n+low
-        -- local face={n,high,lp}
+        local face={n,high,lp}
         local face=Face{normal=n,hl={high:add(pos),lp:add(pos)}}
         table.insert(faces,face)
+        -- local aabb = {high+pos,low+pos}
         self.mesh_aabb = faces
     end
     return  self.mesh_aabb

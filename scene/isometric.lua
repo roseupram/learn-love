@@ -79,16 +79,18 @@ function sc:update(dt)
         local dvdt =velocity*dt*P
         local n=face.normal
             
-        -- local t = (player_pos-h):dot(n)
         local vnormal = velocity:normal()
-        local t_ = face:raytest(player_pos,vnormal)
-        local sign= FP.sign(vnormal:dot(n))
-        -- BUG sometimes snap to wall 
-        if t_ and sign*t_ > 0 and sign*t_ <= dvdt:len()then
-            print("vnormal: ",vnormal)
-            local tangen=(vnormal-n*(vnormal:dot(n)))
-            dvdt=tangen*dt*P
-            print("dvdt: ", dvdt)
+        local dist = face:distance(player_pos)
+        local cos_v_n =vnormal:dot(n)
+        if cos_v_n * dist < 0 then -- I am going to the wall
+            local t_ = face:raytest(player_pos, vnormal)
+            local sign = FP.sign(cos_v_n)
+            if t_ and sign * t_ > 0 and sign * t_ <= dvdt:len() then
+                print("vnormal: ", vnormal)
+                local tangen = (vnormal - vnormal:project_to(n))
+                dvdt = tangen * dt * P
+                print("dvdt: ", dvdt)
+            end
         end
         self.player:move(dvdt)
     end
@@ -192,9 +194,9 @@ function sc:new()
     local wall = Mesh{
         vertex={
             {-2,-1,0,1,1,1,0,0},
-            {-2,1,0,1,1,1,0,0},
-            {2,1,0,1,1,1,0,0},
             {2,-1,0,1,1,1,0,0},
+            {2,1,0,1,1,1,0,0},
+            {-2,1,0,1,1,1,0,0},
         }
     }
     wall:set_position(Point(1,0,3))

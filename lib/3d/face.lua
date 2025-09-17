@@ -23,14 +23,23 @@ function Face:raytest(point,dir)
     if t_HP*t_LP >0 then
         return 
     end
-    dir=dir:normal()
+    local dir_n=dir:normal()
 
-    local dist = math.abs(HP:dot(n))
-    local cos_n_d = dir:dot(n)
+    local dist = math.abs(self:distance(point))
+    local cos_n_d = dir_n:dot(n)
     local t=dist/cos_n_d
     return  t
 end
-
+---@param point Point
+---@return number distance signed distance 
+function Face:distance(point)
+    local h,l = self:get_hl()
+    local n = self.normal
+    local HP = point-h
+    
+    local dist = HP:dot(n)
+    return dist
+end
 function Face:get_hl()
     return unpack(self.hl)
 end
