@@ -77,12 +77,13 @@ function sc:update(dt)
     local scale = FP.sin(Time,.2,1)
     self.circle:set_scale(Point(scale,1,scale))
     local cubes=self:get('cubes')
-    cubes:set_position(2,Point(-4,0,FP.sin(2*Time,0,5)))
-    -- cubes:set_rotate(2,Point(0,0,Time*3))
+    -- cubes:set_position(2,Point(-4,0,FP.sin(2*Time,0,5)))
+    -- cubes:set_rotate(2,Point(0,Time,0))
     local in_aabb=false
     local dvdt = velocity * dt * P
     for i=1,3 do
         local aabb = cubes:get_aabb(i)
+        -- static aabb and dynamic one
         -- aabb for big mesh
         -- face for thin mesh
         -- TODO need actual shape for slide move
@@ -128,13 +129,13 @@ function sc:new()
     }
     local vmap={1,3,2,1,4,3,8,5,6,8,6,7,9,10,11,9,11,12,13,14,15,13,15,16}
     local tfs = {
-        { { 0, 0, 0 }, { 2, 0, 4 }, { 2, 0, -2 } },
+        { { 0, 0, 0 }, { -5, 0, 4 }, { 2, 0, -2 } },
         { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },
         { { 1, 1, 1 }, { 1, 1, 1 }, { 1, 1, 1 }, }
     }
-    local cube=Mesh{vmap=vmap,vertex=vertex,mode="triangles",
-    instance=3,tl=tfs[1],rot=tfs[2],sc=tfs[3],
-    color = {{1,1,1,1},{1,1,1,1},{1,1,1,1}}
+    local cube = Mesh { vmap = vmap, vertex = vertex, mode = "triangles",
+        instance = 3, tl = tfs[1], rot = tfs[2], sc = tfs[3],
+        color = { { 1, 1, 1, 1 }, { 1, 1, 1, 1 }, { 1, 1, 1, 1 } }
     }
     self:push(cube,"cubes")
 

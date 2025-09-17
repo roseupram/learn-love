@@ -5,7 +5,7 @@ local Face=pttype{name="Face"}
 ---@field hl [Point,Point]
 function Face:new(ops)
    self.normal=ops.normal
-   self.hl=ops.hl
+   self.points=ops.points
 end
 ---@param point Point from here
 ---@param dir Point cast ray along 
@@ -39,8 +39,5 @@ function Face:distance(point)
     
     local dist = HP:dot(n)
     return dist
-end
-function Face:get_hl()
-    return unpack(self.hl)
 end
 return Face
