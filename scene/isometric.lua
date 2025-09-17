@@ -76,27 +76,24 @@ function sc:update(dt)
 
     local scale = FP.sin(Time,.2,1)
     self.circle:set_scale(Point(scale,1,scale))
-    local cube=self:get('cube')
-    cube:set_position(2,Point(-4,0,FP.sin(2*Time,0,5)))
-    cube:set_rotate(2,Point(0,0,Time*3))
-    local aabb=cube:get_aabb()
-    do
+    local cubes=self:get('cubes')
+    cubes:set_position(2,Point(-4,0,FP.sin(2*Time,0,5)))
+    -- cubes:set_rotate(2,Point(0,0,Time*3))
+    local in_aabb=false
+    local dvdt = velocity * dt * P
+    for i=1,3 do
+        local aabb = cubes:get_aabb(i)
         -- aabb for big mesh
         -- face for thin mesh
+        -- TODO need actual shape for slide move
         local player_aabb = self.player:get_aabb()
-        local high,low= unpack(aabb)
-        local dvdt =velocity*dt*P
-        local pos_to=dvdt+player_aabb[1]
-        local is_in_range =function (value,key)
-            return value>low[key]-.001 and value<high[key]+.001
+        in_aabb = aabb:test_aabb(player_aabb+dvdt)
+        if in_aabb then
+            break
         end
-        local in_aabb = pos_to:every(is_in_range)
-        pos_to=dvdt+player_aabb[2]
-        in_aabb = in_aabb or pos_to:every(is_in_range)
-            
-        if not in_aabb then
-            self.player:move(dvdt)
-        end
+    end
+    if not in_aabb then
+        self.player:move(dvdt)
     end
 end
 
@@ -139,7 +136,7 @@ function sc:new()
     instance=3,tl=tfs[1],rot=tfs[2],sc=tfs[3],
     color = {{1,1,1,1},{1,1,1,1},{1,1,1,1}}
     }
-    self:push(cube,"cube")
+    self:push(cube,"cubes")
 
     my_shader=Shader.new('isometric','frag')
     self.image= lg.newImage("images/player.png")
