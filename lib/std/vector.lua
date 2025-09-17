@@ -175,6 +175,12 @@ function Vector:project_to(n)
     local l = self:dot(n)
     return n*l
 end
+function Vector:every(f)
+    local bool = self.keys:every(function (key)
+        return f(self[key],key,self)
+    end)
+    return bool
+end
 function Vector:abs()
     return self:map(math.abs)
 end

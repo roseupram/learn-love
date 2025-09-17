@@ -126,9 +126,10 @@ function mesh:new(ops)
     end
     self.outline=ops.outline or 0
 end
-function mesh:get_aabb()
+function mesh:get_aabb(index)
+    index = index or 1
     local pos=self:get_position()
-    if not self.mesh_aabb then
+    if not self._aabb then
         local low=Point()
         local high=Point()
         local vs = {}
@@ -147,13 +148,14 @@ function mesh:get_aabb()
         local BC = vs[3]-vs[2]
         local n=AB:cross(BC):normal()
         local lp= (high-low)*n+low
-        local face={n,high,lp}
-        local face=Face{normal=n,hl={high:add(pos),lp:add(pos)}}
-        table.insert(faces,face)
-        -- local aabb = {high+pos,low+pos}
-        self.mesh_aabb = faces
+        -- local face={n,high,lp}
+        -- local face=Face{normal=n,hl={high:add(pos),lp:add(pos)}}
+        -- table.insert(faces,face)
+        local aabb = {high+pos,low+pos}
+        self.mesh_aabb= {high,low}
+        self._aabb = aabb
     end
-    return  self.mesh_aabb
+    return  self._aabb
 end
 local function resolve_index_data(index,data)
     if type(index)~="number" then
@@ -166,6 +168,13 @@ end
 ---@param p3d Point|nil
 function mesh:set_position(index, p3d)
     index ,p3d=resolve_index_data(index,p3d)
+    if self._aabb and index == 1 then
+        local pos=self:get_position()
+        local dp = p3d-pos
+        for i,v in ipairs(self._aabb) do
+            v:add(dp)
+        end
+    end
     self._tl:setVertex(index,p3d:unpack())
 end
 ---@return Point

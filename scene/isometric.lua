@@ -73,33 +73,31 @@ function sc:update(dt)
     local velocity = gp-player_pos
     local P=3
     local wall=self:get('wall')
-    local aabb=wall:get_aabb()
-    do
-        local face= aabb[1]
-        local dvdt =velocity*dt*P
-        local n=face.normal
-            
-        local vnormal = velocity:normal()
-        local dist = face:distance(player_pos)
-        local cos_v_n =vnormal:dot(n)
-        if cos_v_n * dist < 0 then -- I am going to the wall
-            local t_ = face:raytest(player_pos, vnormal)
-            local sign = FP.sign(cos_v_n)
-            if t_ and sign * t_ > 0 and sign * t_ <= dvdt:len() then
-                print("vnormal: ", vnormal)
-                local tangen = (vnormal - vnormal:project_to(n))
-                dvdt = tangen * dt * P
-                print("dvdt: ", dvdt)
-            end
-        end
-        self.player:move(dvdt)
-    end
 
     local scale = FP.sin(Time,.2,1)
     self.circle:set_scale(Point(scale,1,scale))
     local cube=self:get('cube')
     cube:set_position(2,Point(-4,0,FP.sin(2*Time,0,5)))
     cube:set_rotate(2,Point(0,0,Time*3))
+    local aabb=cube:get_aabb()
+    do
+        -- aabb for big mesh
+        -- face for thin mesh
+        local player_aabb = self.player:get_aabb()
+        local high,low= unpack(aabb)
+        local dvdt =velocity*dt*P
+        local pos_to=dvdt+player_aabb[1]
+        local is_in_range =function (value,key)
+            return value>low[key]-.001 and value<high[key]+.001
+        end
+        local in_aabb = pos_to:every(is_in_range)
+        pos_to=dvdt+player_aabb[2]
+        in_aabb = in_aabb or pos_to:every(is_in_range)
+            
+        if not in_aabb then
+            self.player:move(dvdt)
+        end
+    end
 end
 
 function sc:new()
@@ -154,6 +152,7 @@ function sc:new()
     }
     self.player.shader=Shader.new("outline")
     self.player.shader:send('edge_color',{.9,.5,.3,1})
+    self.player:set_position(Point(-1,0,-3))
     local w,h=lg.getDimensions()
     -- love.mouse.setVisible(false)
     self:resize(w,h)
