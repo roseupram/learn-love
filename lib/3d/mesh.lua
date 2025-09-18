@@ -106,6 +106,7 @@ function mesh:new(ops)
     self.usage=ops.usage or 'static'
     self._mesh = love.graphics.newMesh(self.vformat, self.vertex, self.mode,self.usage)
     self.instance=ops.instance or 1
+    self._position={Point()}
     local dfv = {
         sc={{1,1,1}},
         color = { { 1, 1, 1, 1 } },
@@ -141,14 +142,9 @@ function mesh:get_aabb(index)
             end)
         end
         local aabbs = {}
-        self.mesh_aabb= AABB{max=high,min=low}
-        for i = 1, self.instance  do
-            local pos = self:get_position(i)
-            table.insert(aabbs,self.mesh_aabb+pos)
-        end
-        self._aabb = aabbs
+        self._aabb= AABB{max=high,min=low}
     end
-    return  self._aabb[index]
+    return  self._aabb
 end
 local function resolve_index_data(index,data)
     if type(index)~="number" then
@@ -161,17 +157,13 @@ end
 ---@param p3d Point|nil
 function mesh:set_position(index, p3d)
     index ,p3d=resolve_index_data(index,p3d)
-    if self._aabb then
-        local pos=self:get_position(index)
-        local dp = p3d-pos
-        self._aabb[index]:add(dp)
-    end
+    self._position[index] = p3d
     self._tl:setVertex(index,p3d:unpack())
 end
 ---@return Point
 function mesh:get_position(index)
-    local pos=Point(self._tl:getVertex(index or 1))
-    return pos
+    index =index or 1
+    return self._position[index]
 end
 function mesh:move(index,dv)
     index ,dv=resolve_index_data(index,dv)

@@ -7,29 +7,27 @@ local Color=Shape.Color
 local Array=require('array')
 local FP=require('FP')
 local timer=require('timer')()
-local Pen=require('pen')
 local Camera=require('3d.camera')
 local Mesh=require('3d.mesh')
 local Shader=require('shader')
+local Node=require('3d.node')
 
 
 local my_shader
 local lg = love.graphics
-local sc = Pen.Scene{name="Isometric"}
+local sc = Node{name="Isometric"}
 function sc:draw()
     local bg_color = {.2,.3,.3}
     lg.clear(table.unpack(bg_color))
     lg.print(self.name..'\nFPS:'..love.timer.getFPS(),1,1)
     lg.setShader(my_shader)
     local cam = self.camera
-    for i,child in ipairs(self.children) do
-        if child.draw then
-            
+    for i,child in ipairs(self.to_draw) do
+        -- lg.setWireframe(true)
         if child.shader then
             child.shader:send('camera_param', 'column', cam:param_mat())
         end
         child:draw()
-        end
     end
     lg.setShader()
 end
@@ -81,7 +79,7 @@ function sc:update(dt)
     -- cubes:set_rotate(2,Point(0,Time,0))
     local in_aabb=false
     local dvdt = velocity * dt * P
-    for i=1,3 do
+    for i=1,0 do
         local aabb = cubes:get_aabb(i)
         -- static aabb and dynamic one
         -- aabb for big mesh
