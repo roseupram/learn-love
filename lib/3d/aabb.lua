@@ -1,8 +1,49 @@
 local pttype = require('prototype')
+local Point=require('3d.point')
+local FP=require('FP')
+local Face=require('3d.face')
+
 local AABB = pttype{name='AABB'}
 function AABB:new(ops)
     self.max=ops.max
     self.min=ops.min
+    local n6={
+        Point(1,0,0),
+        Point(0,1,0),
+        Point(0,0,1),
+        Point(-1,0,0),
+        Point(0,-1,0),
+        Point(0,0,-1),
+    }
+    self.faces={}
+    for i,n in ipairs(n6) do
+        local AB = self.max-self.min
+        local offset=0
+        local share_p=self.max
+        local base_p = self.min
+        if i>3 then
+            offset=3
+            share_p=self.min
+            base_p=self.max
+        end
+        local points={share_p,AB*n+base_p}
+        for d=1,2 do
+            local m = FP.cycle(i + d, 1, 3, 1) + offset
+            table.insert(points, base_p + AB * (n + n6[m]))
+        end
+        local face=Face{normal=n,points=points}
+        table.insert(self.faces,face)
+    end
+end
+function AABB:test_ray(point,direction)
+    local pos,normal
+    for i,face in ipairs(self.faces) do
+        local t = face:test_ray(point,direction)
+        if t then
+            return point+direction*t, face.normal
+        end
+    end
+    return pos,normal
 end
 function AABB:test_point(point)
     local is_in_range = function(value, key)
@@ -24,12 +65,15 @@ function AABB:unpack()
 end
 ---new place add
 function AABB:__add(point)
-    return self:clone():add(point)
+    return AABB{max=self.max+point,min=self.min+point}
 end
 ---in place add
 function AABB:add(point)
     self.max:add(point)
     self.min:add(point)
+    for i ,face in ipairs(self.faces) do
+        face:add(point)
+    end
     return self
 end
 function AABB:clone()

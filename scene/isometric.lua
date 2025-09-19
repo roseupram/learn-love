@@ -58,45 +58,44 @@ function sc:update(dt)
     my_shader:send('time',Time)
     my_shader:send('camera_param','column',cam:param_mat())
     local p,d=cam:ray(love.mouse.getPosition())
+    local A=Point(0,-.1,0) -- (A,n) is a plane
+    local n=Point(0,1,0)
+    local t=(p-A):dot(n)/(d:dot(n))
+    local gp=p-d*t
+    self.circle:set_position(gp)
+
+    local ground=self:get('ground')
+    local aabb=ground:get_aabb()+ground:get_position()
+    local point,face_n = aabb:test_ray(p,d)
+    local velocity = Point()
+    local player_pos=self.player:get_position()
+    if point then
+        -- print(point,face_n)
+        velocity = point - player_pos+Point(0,1,0)
+        self.circle:set_position(point+face_n*.1)
+    end
     --- mesh {A,B,C}
     -- t = Ap:dot(AB:cross(BC))/(d:dot(n))
     -- p_in_plane=t*p+d
     -- local t= (p.y-0)/d.y
-    local A=Point(0,0,0)
-    local n=Point(0,1,0)
-    local t=(p-A):dot(n)/(d:dot(n))
-    local gp=p-d*t
-    self.circle:set_position(gp-Point(0,.99,0))
-    local player_pos=self.player:get_position()
-    local velocity = gp-player_pos
     local P=3
-    local wall=self:get('wall')
 
     local scale = FP.sin(Time,.2,1)
     self.circle:set_scale(Point(scale,1,scale))
-    local cubes=self:get('cubes')
-    -- cubes:set_position(2,Point(-4,0,FP.sin(2*Time,0,5)))
-    -- cubes:set_rotate(2,Point(0,Time,0))
     local in_aabb=false
     local dvdt = velocity * dt * P
-    for i=1,0 do
-        local aabb = cubes:get_aabb(i)
-        -- static aabb and dynamic one
-        -- aabb for big mesh
-        -- face for thin mesh
-        -- TODO need actual shape for slide move
-        local player_aabb = self.player:get_aabb()
-        in_aabb = aabb:test_aabb(player_aabb+dvdt)
-        if in_aabb then
-            break
-        end
-    end
     if not in_aabb then
         self.player:move(dvdt)
+        local yr = math.atan2(velocity.x,velocity.z)
+        self.player:set_rotate(Point(0,yr,0))
     end
 end
 
 function sc:new()
+    local beat = love.audio.newSource('audio/beat.ogg','static')
+    beat:setLooping(true)
+    beat:setVolume(.2)
+    beat:play()
     self.Time=0
     self.rotate_pivot=-1
     self.camera=Camera()
@@ -128,14 +127,12 @@ function sc:new()
     local vmap={1,3,2,1,4,3,8,5,6,8,6,7,9,10,11,9,11,12,13,14,15,13,15,16}
     local tfs = {
         { { 0, 0, 0 }, { -5, 0, 4 }, { 2, 0, -2 } },
-        { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },
-        { { 1, 1, 1 }, { 1, 1, 1 }, { 1, 1, 1 }, }
     }
     local cube = Mesh { vmap = vmap, vertex = vertex, mode = "triangles",
-        instance = 3, tl = tfs[1], rot = tfs[2], sc = tfs[3],
-        color = { { 1, 1, 1, 1 }, { 1, 1, 1, 1 }, { 1, 1, 1, 1 } }
+        instance = 3, tl = tfs[1] ,
     }
-    self:push(cube,"cubes")
+    -- self:push(cube,"cubes")
+    cube:set_position(3,Point(3,0,-1))
 
     my_shader=Shader.new('isometric','frag')
     self.image= lg.newImage("images/player.png")
@@ -197,6 +194,29 @@ function sc:new()
     wall:set_position(Point(1,0,3))
     wall:color_tone(Color.hex('#7a573d'))
     self:push(wall,"wall")
+
+    local ground = Mesh{
+        vertex={
+            {-1,0,0,1,1,1,0,0},
+            {1,0,0,1,1,1,0,0},
+            {-1,0,-2,1,1,.8,0,0},
+            {1,0,-2,1,1,.9,0,0},
+            {-1,2,-4,1,.5,1,0,0},
+            {1,2,-4,.3,1,1,0,0},
+            {-1,2,-6,1,1,1,0,0},
+            {1,2,-6,1,1,1,0,0},
+        },
+        mode='strip'
+    }
+    ground:set_position(Point(8,0,3))
+    self:push(ground,"ground")
+    local unit_cube = Mesh.cube{wireframe=true}
+    self:push(unit_cube,'debug_cube')
+    local aabb=ground:get_aabb()
+    local size = aabb.max-aabb.min
+    local center = (aabb.max+aabb.min)/2
+    unit_cube:set_scale(size/2)
+    unit_cube:set_position(ground:get_position()+center)
 end
 function sc:resize(w,h)
     self.camera.wh_ratio=w/h

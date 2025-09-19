@@ -1,4 +1,5 @@
 local protype=require('prototype')
+local FP=require('FP')
 local AABB=require("3d.aabb")
 local Color=require('color')
 local path=(...):gsub("[^.]+$","") -- remove last name
@@ -14,6 +15,40 @@ local vformat = {
     { "VertexColor",    "float", 3 },
     { "VertexTexCoord", "float", 2 }
 }
+function mesh.cube(ops)
+    local v={}
+    local vmap={}
+    local n3={
+        Point(1,0,0),
+        Point(0,1,0),
+        Point(0,0,1),
+        Point(-1,0,0),
+        Point(0,-1,0),
+        Point(0,0,-1),
+    }
+    local len=math.sqrt(2)
+    local vm = { 1, 2, 3, 1, 3, 4 }
+    local vmap_step = 4
+    for i, n in ipairs(n3) do
+        local offset=0
+        if i>3 then
+            offset=3
+        end
+        for vi=1,4 do
+            local theta=math.rad(vi*90-45)
+            local x=len*math.cos(theta)
+            local y=len*math.sin(theta)
+            local u_= n3[FP.cycle(i+1,1,3,1)+offset]
+            local v_= n3[FP.cycle(i+2,1,3,1)+offset]
+            local point=u_*x  + v_*y + n
+            table.insert(v,{point.x,point.y,point.z,1,1,1,0,0})
+        end
+        for k,vmi in ipairs(vm) do
+            table.insert(vmap,vmi+(i-1)*vmap_step)
+        end
+    end
+    return mesh{vertex=v,mode='triangles',vmap=vmap,wireframe=ops.wireframe}
+end
 function mesh.circle()
     local v={{0,0,0,1,1,1,0,0}}
     local tau=math.pi*2
@@ -106,18 +141,34 @@ function mesh:new(ops)
     self.usage=ops.usage or 'static'
     self._mesh = love.graphics.newMesh(self.vformat, self.vertex, self.mode,self.usage)
     self.instance=ops.instance or 1
-    self._position={Point()}
+    self.wireframe=ops.wireframe or false
     local dfv = {
-        sc={{1,1,1}},
-        color = { { 1, 1, 1, 1 } },
-        fallback = { { 0, 0, 0 } }
+        sc={1,1,1},
+        color =  { 1, 1, 1, 1 } ,
+        fallback =  { 0, 0, 0 }
     }
     for i,k in ipairs{"tl","sc","color","rot"} do
         local key="_"..k
         local attribute="a_"..k
-        local data = ops[k] or dfv[k] or dfv["fallback"]
+        local data = {}
+        for inst = 1, self.instance do
+            if ops[k] and ops[k][inst] then
+                data[inst] = ops[k][inst]
+            else
+                data[inst] = dfv[k] or dfv["fallback"]
+            end
+        end
         self[key]=love.graphics.newMesh({{attribute,"float",3}},data,nil)
         self._mesh:attachAttribute(attribute, self[key], "perinstance")
+    end
+    if ops.tl then
+        local t={}
+        for i,tl in ipairs(ops.tl) do
+            table.insert(t,Point(unpack(tl)))
+        end
+        self._position=t
+    else
+        self._position = { Point() }
     end
     if ops.vmap then
         self._mesh:setVertexMap(ops.vmap)
@@ -183,6 +234,7 @@ function mesh:set_rotate(index,p3d)
 end
 function mesh:draw()
     love.graphics.push('all')
+    love.graphics.setWireframe(self.wireframe)
     if self.shader then
          love.graphics.setShader(self.shader)
     end

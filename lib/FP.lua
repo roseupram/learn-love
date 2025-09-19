@@ -54,4 +54,8 @@ function FP.sin(x,min,max)
     local A=(max-min)/2
     return A*math.sin(x)+base
 end
+function FP.cycle(x,left,right,base)
+    local range=right-left+1
+    return (x-base)%range+left
+end
 return FP
