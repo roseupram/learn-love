@@ -71,7 +71,7 @@ function sc:update(dt)
     local player_pos=self.player:get_position()
     if point then
         -- print(point,face_n)
-        velocity = point - player_pos+Point(0,1,0)
+        velocity = point - player_pos+Point(0,.99,0)
         self.circle:set_position(point+face_n*.1)
     end
     --- mesh {A,B,C}
@@ -84,8 +84,9 @@ function sc:update(dt)
     self.circle:set_scale(Point(scale,1,scale))
     local in_aabb=false
     local dvdt = velocity * dt * P
-    if not in_aabb then
+    if not in_aabb and dvdt:len()>.001 then
         self.player:move(dvdt)
+        print(self.player:get_position())
         local yr = math.atan2(velocity.x,velocity.z)
         self.player:set_rotate(Point(0,yr,0))
     end
@@ -95,7 +96,7 @@ function sc:new()
     local beat = love.audio.newSource('audio/beat.ogg','static')
     beat:setLooping(true)
     beat:setVolume(.2)
-    beat:play()
+    -- beat:play()
     self.Time=0
     self.rotate_pivot=-1
     self.camera=Camera()
