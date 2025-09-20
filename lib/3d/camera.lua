@@ -24,7 +24,7 @@ function camera:move(dv)
     return self.tl:add(dv)
 end
 function camera:zoom(x)
-    self.radius=FP.clamp(self.radius+x,2,30)
+    self.radius=FP.clamp(self.radius+x,5,30)
 end
 --- front vector's project on z axis
 function camera:front_z()
@@ -60,7 +60,7 @@ function camera:ray(x,y)
     x=2*x/w-1; y=1-2*y/h;
     local RyRx=self:rotate_mat()
     local dir=RyRx*Point(0,0,-1)
-    local point_world=RyRx*Point(x,y/self.wh_ratio,1)+self.tl
+    local point_world=RyRx*Point(x,y/self.wh_ratio,2)+self.tl
     point_world:mul(self.radius)
     return point_world,dir
 end

@@ -70,7 +70,6 @@ function sc:update(dt)
     local velocity = Point()
     local player_pos=self.player:get_position()
     if point then
-        -- print(point,face_n)
         velocity = point - player_pos+Point(0,.99,0)
         self.circle:set_position(point+face_n*.1)
     end
@@ -86,7 +85,6 @@ function sc:update(dt)
     local dvdt = velocity * dt * P
     if not in_aabb and dvdt:len()>.001 then
         self.player:move(dvdt)
-        print(self.player:get_position())
         local yr = math.atan2(velocity.x,velocity.z)
         self.player:set_rotate(Point(0,yr,0))
     end
