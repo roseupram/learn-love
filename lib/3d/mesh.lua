@@ -142,6 +142,7 @@ function mesh:new(ops)
     self._mesh = love.graphics.newMesh(self.vformat, self.vertex, self.mode,self.usage)
     self.instance=ops.instance or 1
     self.wireframe=ops.wireframe or false
+    self.anchor=ops.anchor or Point()
     local dfv = {
         sc={1,1,1},
         color =  { 1, 1, 1, 1 } ,
@@ -209,6 +210,7 @@ end
 function mesh:set_position(index, p3d)
     index ,p3d=resolve_index_data(index,p3d)
     self._position[index] = p3d
+    p3d=p3d-self.anchor -- move to origin
     self._tl:setVertex(index,p3d:unpack())
 end
 ---@return Point

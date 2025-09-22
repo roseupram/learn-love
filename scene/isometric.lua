@@ -57,22 +57,27 @@ function sc:update(dt)
     cam:move(dv*dt)
     my_shader:send('time',Time)
     my_shader:send('camera_param','column',cam:param_mat())
-    local p,d=cam:ray(love.mouse.getPosition())
-    local A=Point(0,-.1,0) -- (A,n) is a plane
-    local n=Point(0,1,0)
-    local t=(p-A):dot(n)/(d:dot(n))
-    local gp=p-d*t
-    self.circle:set_position(gp)
+    if self.clicked then
+        self.clicked=false
+        local p, d = cam:ray(love.mouse.getPosition())
+        local A = Point(0, -.1, 0) -- (A,n) is a plane
+        local n = Point(0, 1, 0)
+        local t = (p - A):dot(n) / (d:dot(n))
+        local gp = p - d * t
+        self.circle:set_position(gp)
+        self.target_pos=gp
+        local ground = self:get('ground')
+        local aabb = ground:get_aabb() + ground:get_position()
+        local point, face_n = aabb:test_ray(p, d)
+        if point then
+            self.target_pos=point
+            self.circle:set_position(point + face_n * .1)
+        end
+    end
 
-    local ground=self:get('ground')
-    local aabb=ground:get_aabb()+ground:get_position()
-    local point,face_n = aabb:test_ray(p,d)
     local velocity = Point()
     local player_pos=self.player:get_position()
-    if point then
-        velocity = point - player_pos+Point(0,.99,0)
-        self.circle:set_position(point+face_n*.1)
-    end
+    velocity = self.target_pos- player_pos
     --- mesh {A,B,C}
     -- t = Ap:dot(AB:cross(BC))/(d:dot(n))
     -- p_in_plane=t*p+d
@@ -94,7 +99,7 @@ function sc:new()
     local beat = love.audio.newSource('audio/beat.ogg','static')
     beat:setLooping(true)
     beat:setVolume(.2)
-    -- beat:play()
+    beat:play()
     self.Time=0
     self.rotate_pivot=-1
     self.camera=Camera()
@@ -140,7 +145,8 @@ function sc:new()
         { 1,  1,  0, 1, 1, 1, 1, 0 },
         { 1,  -1, 0, 1, 1, 1, 1, 1 },
         { -1, -1, 0, 1, 1, 1, 0, 1 },
-    }, texture=self.image
+    }, texture = self.image,
+        anchor = Point(0, -1, 0),
     }
     self.player.shader=Shader.new("outline")
     self.player.shader:send('edge_color',{.9,.5,.3,1})
@@ -148,6 +154,8 @@ function sc:new()
     local w,h=lg.getDimensions()
     -- love.mouse.setVisible(false)
     self:resize(w,h)
+    self.clicked=false
+    self.target_pos=Point()
     self.circle=Mesh.ring()
     local plt={
         red = Color(.9, .2, .2),
@@ -212,10 +220,16 @@ function sc:new()
     local unit_cube = Mesh.cube{wireframe=true}
     self:push(unit_cube,'debug_cube')
     local aabb=ground:get_aabb()
+    self.player:set_position(aabb.max+ground:get_position())
     local size = aabb.max-aabb.min
     local center = (aabb.max+aabb.min)/2
     unit_cube:set_scale(size/2)
     unit_cube:set_position(ground:get_position()+center)
+end
+function sc:mousepressed(x,y,button,is_touch,times)
+    if button==1 then
+        self.clicked=true
+    end
 end
 function sc:resize(w,h)
     self.camera.wh_ratio=w/h
