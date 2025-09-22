@@ -84,7 +84,7 @@ function sc:update(dt)
     -- local t= (p.y-0)/d.y
     local P=3
 
-    local scale = FP.sin(Time,.2,1)
+    local scale = FP.sin(Time,.2,.5)
     self.circle:set_scale(Point(scale,1,scale))
     local in_aabb=false
     local dvdt = velocity * dt * P
@@ -196,7 +196,8 @@ function sc:new()
             {2,-1,0,1,1,1,0,0},
             {2,1,0,1,1,1,0,0},
             {-2,1,0,1,1,1,0,0},
-        }
+        },
+        anchor=Point(0,-1,0)
     }
     wall:set_position(Point(1,0,3))
     wall:color_tone(Color.hex('#7a573d'))
