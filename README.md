@@ -6,7 +6,7 @@ No, still need style, for animation, rotation
 ## How to run
 - install [love2d](https://love2d.org/) if you have no love2d
 - download [game.love](https://github.com/roseupram/learn-love/releases) and click to run
-- view control: `wasd` to move, `alt+mouse` to rotate
+- view control: `mouse` to move, `alt+mouse` to rotate
 
 ## note
 - Don't use `love.graphics.setColor()` for 3d render, it conflicts with vertex color
