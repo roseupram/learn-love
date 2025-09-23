@@ -20,6 +20,7 @@ function sc:draw()
     local bg_color = {.2,.3,.3}
     lg.clear(table.unpack(bg_color))
     lg.print(self.name..'\nFPS:'..love.timer.getFPS(),1,1)
+    lg.setDepthMode('less',true)
     lg.setShader(my_shader)
     local cam = self.camera
     for i,child in ipairs(self.to_draw) do
@@ -30,6 +31,9 @@ function sc:draw()
         child:draw()
     end
     lg.setShader()
+    lg.setDepthMode()
+    local x, y =love.mouse.getPosition()
+    lg.circle('fill',x,y,10)
 end
 ---@param dt number
 function sc:update(dt)
@@ -38,18 +42,28 @@ function sc:update(dt)
     timer:update(dt)
     local lk=love.keyboard
     local dz, dx = 0, 0
-    if lk.isDown('w') then
-        dz = dz + 1
+    local mouse_pos=Vec(love.mouse.getPosition())
+    if self.rotate_pivot>0 then
+        local dx_= mouse_pos.x-self.rotate_pivot
+        self.camera.y_rot=self.y_base+dx_
     end
-    if lk.isDown('s') then
-        dz = dz - 1
-    end
-    if lk.isDown('a') then
-        dx=dx-1
-    end
-    if lk.isDown('d') then
-        dx=dx+1
-    end
+    local win_size = Vec(love.graphics.getDimensions())
+    mouse_pos=mouse_pos/win_size
+    local move_range=.05
+    dz=-FP.double_step(mouse_pos.y,move_range,1-move_range)
+    dx=FP.double_step(mouse_pos.x,move_range,1-move_range)
+    -- if lk.isDown('w') then
+    --     dz = dz + 1
+    -- end
+    -- if lk.isDown('s') then
+    --     dz = dz - 1
+    -- end
+    -- if lk.isDown('a') then
+    --     dx=dx-1
+    -- end
+    -- if lk.isDown('d') then
+    --     dx=dx+1
+    -- end
     local cam = self.camera
     local front = cam:front_z()*cam.wh_ratio -- in glsl, y*=wh_ratio
     local left=cam:left_x()
@@ -58,6 +72,8 @@ function sc:update(dt)
     my_shader:send('time',Time)
     my_shader:send('camera_param','column',cam:param_mat())
     if self.clicked then
+        local times = FP.clamp(self.clicked,1,2)
+        self.velocity_P=(times-1)*5+5
         self.clicked=false
         local p, d = cam:ray(love.mouse.getPosition())
         local A = Point(0, -.1, 0) -- (A,n) is a plane
@@ -75,20 +91,15 @@ function sc:update(dt)
         end
     end
 
-    local velocity = Point()
     local player_pos=self.player:get_position()
-    velocity = self.target_pos- player_pos
-    --- mesh {A,B,C}
-    -- t = Ap:dot(AB:cross(BC))/(d:dot(n))
-    -- p_in_plane=t*p+d
-    -- local t= (p.y-0)/d.y
-    local P=3
+    local PT = self.target_pos- player_pos
+    local distance = PT:len()
+    local velocity = PT:normal()
 
     local scale = FP.sin(Time,.2,.5)
     self.circle:set_scale(Point(scale,1,scale))
-    local in_aabb=false
-    local dvdt = velocity * dt * P
-    if not in_aabb and dvdt:len()>.001 then
+    local dvdt = velocity * dt * self.velocity_P*FP.clamp(distance,0,1)
+    if distance>.01 then
         self.player:move(dvdt)
         local yr = math.atan2(velocity.x,velocity.z)
         self.player:set_rotate(Point(0,yr,0))
@@ -104,6 +115,7 @@ function sc:new()
     self.rotate_pivot=-1
     self.camera=Camera()
     lg.setDepthMode('less',true)
+    -- love.mouse.setRelativeMode(true)
     local vformat={
         {"VertexPosition","float",3},
         {"VertexColor","float",3},
@@ -152,10 +164,12 @@ function sc:new()
     self.player.shader:send('edge_color',{.9,.5,.3,1})
     self.player:set_position(Point(-1,0,-3))
     local w,h=lg.getDimensions()
+    love.mouse.setPosition(w/2,h/2)
     -- love.mouse.setVisible(false)
     self:resize(w,h)
     self.clicked=false
     self.target_pos=Point()
+    self.velocity_P=1
     self.circle=Mesh.ring()
     local plt={
         red = Color(.9, .2, .2),
@@ -229,7 +243,7 @@ function sc:new()
 end
 function sc:mousepressed(x,y,button,is_touch,times)
     if button==1 then
-        self.clicked=true
+        self.clicked=times
     end
 end
 function sc:resize(w,h)
@@ -251,11 +265,7 @@ function sc:keyreleased(key,scancode,isrepeat)
         self.rotate_pivot=-1
     end
 end
-function sc:mousemoved(x,y)
-    if self.rotate_pivot>0 then
-        local dx= x-self.rotate_pivot
-        self.camera.y_rot=self.y_base+dx
-    end
+function sc:mousemoved(x,y,dx,dy)
 end
 
 return sc

@@ -58,4 +58,13 @@ function FP.cycle(x,left,right,base)
     local range=right-left+1
     return (x-base)%range+left
 end
+function FP.double_step(x, a, b)
+    if x < a then
+        return -1
+    elseif x < b then
+        return 0
+    else
+        return 1
+    end
+end
 return FP
