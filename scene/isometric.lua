@@ -52,18 +52,6 @@ function sc:update(dt)
     local move_range=.05
     dz=-FP.double_step(mouse_pos.y,move_range,1-move_range)
     dx=FP.double_step(mouse_pos.x,move_range,1-move_range)
-    -- if lk.isDown('w') then
-    --     dz = dz + 1
-    -- end
-    -- if lk.isDown('s') then
-    --     dz = dz - 1
-    -- end
-    -- if lk.isDown('a') then
-    --     dx=dx-1
-    -- end
-    -- if lk.isDown('d') then
-    --     dx=dx+1
-    -- end
     local cam = self.camera
     local front = cam:front_z()*cam.wh_ratio -- in glsl, y*=wh_ratio
     local left=cam:left_x()
@@ -73,7 +61,7 @@ function sc:update(dt)
     my_shader:send('camera_param','column',cam:param_mat())
     if self.clicked then
         local times = FP.clamp(self.clicked,1,2)
-        self.velocity_P=(times-1)*5+5
+        self.velocity_P=(times-1)*5+3
         self.clicked=false
         local p, d = cam:ray(love.mouse.getPosition())
         local A = Point(0, -.1, 0) -- (A,n) is a plane
@@ -86,8 +74,22 @@ function sc:update(dt)
         local aabb = ground:get_aabb() + ground:get_position()
         local point, face_n = aabb:test_ray(p, d)
         if point then
-            self.target_pos=point
-            self.circle:set_position(point + face_n * .1)
+            point=nil
+            local gpos=ground:get_position()
+            local faces = ground:get_faces()
+            for i,face in ipairs(faces) do
+                face=face+gpos
+                local t_face = face:test_ray(p,d)
+                if t_face then
+                    point=p+d*t_face
+                    face_n=face.normal
+                    break
+                end
+            end
+            if point then
+                self.target_pos = point
+                self.circle:set_position(point + face_n * .1)
+            end
         end
     end
 
@@ -220,20 +222,29 @@ function sc:new()
     local ground = Mesh{
         vertex={
             {-1,0,0,1,1,1,0,0},
-            {1,0,0,1,1,1,0,0},
-            {-1,0,-2,1,1,.8,0,0},
-            {1,0,-2,1,1,.9,0,0},
-            {-1,2,-4,1,.5,1,0,0},
-            {1,2,-4,.3,1,1,0,0},
+            {2,0,0,1,1,1,0,0},
+            {-1,0,-2,.7,1,.8,0,0},
+            {1,0,-2,.7,.9,.9,0,0},
+            {-1,0,-2,.7,1,.8,0,0},
+            {1,0,-2,.7,1,.9,0,0},
+            {-1,2,-4,.7,.5,1,0,0},
+            {1,2,-4,.3,1,.9,0,0},
+            {-1,2,-4,.7,.5,1,0,0},
+            {1,2,-4,.3,1,.9,0,0},
             {-1,2,-6,1,1,1,0,0},
-            {1,2,-6,1,1,1,0,0},
+            {2,2,-6,1,1,1,0,0},
         },
-        mode='strip'
+        mode='triangles',
+        vmap={
+            1,2,3,3,2,4,
+            5,6,7,7,6,8,
+            9,10,11,11,10,12,
+        }
     }
     ground:set_position(Point(8,0,3))
     self:push(ground,"ground")
     local unit_cube = Mesh.cube{wireframe=true}
-    self:push(unit_cube,'debug_cube')
+    -- self:push(unit_cube,'debug_cube')
     local aabb=ground:get_aabb()
     self.player:set_position(aabb.max+ground:get_position())
     local size = aabb.max-aabb.min

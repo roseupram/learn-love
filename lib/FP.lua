@@ -54,8 +54,15 @@ function FP.sin(x,min,max)
     local A=(max-min)/2
     return A*math.sin(x)+base
 end
+---cycle x in [left,right]
+---@param x any
+---@param left any
+---@param right any
+---@param base any
+---@return unknown
 function FP.cycle(x,left,right,base)
     local range=right-left+1
+    base = base or left
     return (x-base)%range+left
 end
 function FP.double_step(x, a, b)
@@ -66,5 +73,8 @@ function FP.double_step(x, a, b)
     else
         return 1
     end
+end
+function FP.round(x)
+    return math.floor(x+.5)
 end
 return FP

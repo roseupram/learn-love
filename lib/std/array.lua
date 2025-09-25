@@ -159,8 +159,8 @@ end
 function Array:remove(i)
     return table.remove(self,i)
 end
+-- check if at least one item satisfies condition
 function Array:exist(func)
-    -- check if at least one item satisfies condition
     for i,v in ipairs(self) do
         local bool=func(v,i,self)
         if bool==true then
@@ -169,6 +169,7 @@ function Array:exist(func)
     end
     return false
 end
+-- check if every item satisfies condition
 function Array:every(func)
     for i,v in ipairs(self) do
         local bool=func(v,i,self)

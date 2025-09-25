@@ -1,4 +1,5 @@
 local protype=require('prototype')
+local Face=require('3d.face')
 local FP=require('FP')
 local AABB=require("3d.aabb")
 local Color=require('color')
@@ -137,6 +138,7 @@ end
 function mesh:new(ops)
     self.vertex=ops.vertex
     self.mode=ops.mode  or 'fan'
+    self.vmap = ops.vmap
     self.vformat=ops.vformat or vformat
     self.usage=ops.usage or 'static'
     self._mesh = love.graphics.newMesh(self.vformat, self.vertex, self.mode,self.usage)
@@ -197,6 +199,72 @@ function mesh:get_aabb(index)
         self._aabb= AABB{max=high,min=low}
     end
     return  self._aabb
+end
+function mesh:get_faces()
+    if self._faces then
+        return self._faces
+    end
+    local function hash_f(p3d)
+       local mult=1000
+       local hash=""
+       p3d:each(function (value)
+            hash=hash.. FP.round(value*mult)
+       end)
+       return hash
+    end
+    local triangles=self:get_triangles()
+    ---merge triangles by normal and base_point 
+    local normal_base_points={}
+    for i,tria in ipairs(triangles) do
+        local A=Point(tria[1])
+        local B=Point(tria[2])
+        local C=Point(tria[3])
+        local AB=B-A
+        local BC=C-B
+        local n= AB:cross(BC):normal()
+        local t = "t" .. FP.round(n:dot(A) * 1000)
+        local n_hash = hash_f(n)
+        if normal_base_points[n_hash] == nil then
+            normal_base_points[n_hash]={n}
+        end
+        if normal_base_points[n_hash][t] == nil then
+            normal_base_points[n_hash][t]={}
+        end
+        local points=normal_base_points[n_hash][t]
+        for _,P in ipairs{A,B,C} do
+            local p_hash=hash_f(P)
+            if points[p_hash] == nil then
+                table.insert(points, P)
+                points[p_hash]=true
+            end
+        end
+        ---hash(normal) 
+    end
+    local faces={}
+    for n_hash,base_points in pairs(normal_base_points) do
+        local normal =base_points[1]
+        base_points[1]=nil
+        for base,points in pairs(base_points) do
+            local face=Face{points=points,normal=normal}
+            table.insert(faces,face)
+        end
+    end
+    self._faces=faces
+    return faces
+end
+function mesh:get_triangles()
+    local triangles={}
+    if self.mode=="triangles" then
+        for i=1,#self.vmap,3 do
+            local triangle={}
+            for j=i,i+2 do
+                local x,y,z= unpack(self.vertex[self.vmap[j]])
+                table.insert(triangle,{x,y,z})
+            end
+            table.insert(triangles,triangle)
+        end
+    end
+    return triangles
 end
 local function resolve_index_data(index,data)
     if type(index)~="number" then

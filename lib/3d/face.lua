@@ -48,16 +48,20 @@ local function sort_points(points,normal)
     return res
 end
 ---@class Face
----@field normal Point
+---@field normal Point indicate orientation of face
+---@field points Point[]
 function Face:new(ops)
-   self.normal=ops.normal
-   self.points=sort_points(ops.points,self.normal)
+    self.normal = ops.normal
+    if ops.sorted then
+        self.points = ops.points
+    else
+        self.points = sort_points(ops.points, self.normal)
+    end
 end
 ---@param point Point from here
 ---@param dir Point cast ray along 
 ---@return number|nil t  if no intersect, return nil <br>
----else t is a number,  point + dir*abs(t) = point_in_face <br>
----sign of `t` is sign of `cos<n,dir>`
+---else t is a number,  point + dir*t = point_on_face <br>
 function Face:test_ray(point,dir)
     local n = self.normal
     local dir_n=dir:normal()
@@ -73,7 +77,7 @@ function Face:test_ray(point,dir)
     local point_onface = point+dir*t
     for i=1,size do
         local A = self.points[i]
-        local B = self.points[FP.cycle(i+1,1,size,1)]
+        local B = self.points[FP.cycle(i+1,1,size)]
         local AB=B-A
         local BP=point_onface-B
         if AB:cross(BP):dot(n)<0 then
@@ -95,5 +99,18 @@ function Face:add(point)
     for i,p in ipairs(self.points) do
         p:add(point)
     end
+end
+function Face:clone()
+    local n=self.normal:clone()
+    local points ={}
+    for i,p in ipairs(self.points) do
+        table.insert(points,p:clone())
+    end
+    return Face{normal=n,points=points,sorted=true}
+end
+function Face:__add(point)
+    local new_face = self:clone()
+    new_face:add(point)
+    return new_face
 end
 return Face
