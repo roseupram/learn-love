@@ -1,6 +1,20 @@
 attribute vec3 a_tl;
+attribute vec4 a_quat;
 attribute vec3 a_rot;
 attribute vec3 a_sc;
+
+mat4 quat_to_mat(vec4 quat){
+    float x=quat.x,y=quat.y,z=quat.z,w=quat.w;
+    float xx=x*x,xy=x*y,xz=x*z,xw=x*w;
+    float yy=y*y,yz=y*z,yw=y*w;
+    float zz=z*z,zw=z*w;
+    return mat4(
+        1-2*(yy+zz), 2*(xy-zw), 2*(xz+yw),0,
+        2*(xy+zw), 1-2*(xx+zz),2*(yz-xw),0,
+        2*(xz-yw),2*(yz+xw),1-2*(xx+yy),0,
+        0,0,0,1
+    );
+}
 
 mat4 rotate_mat(float x,float y,float z){
     /*
@@ -84,7 +98,9 @@ vec4 isometric_project(mat3 camera_param, vec4 vertex_position){
     float tsc = fract(time)+.5;
     tsc = 1;
     mat4 self_sc = scale_mat(length(a_sc)!=0?a_sc:vec3(1,1,1));
-    vertex_position=self_sc*rotate_mat(-a_rot)*vertex_position;
+    //mat4 self_rot=rotate_mat(-a_rot);
+    mat4 self_rot=quat_to_mat(a_quat);
+    vertex_position=self_sc*self_rot*vertex_position;
     vertex_position+=vec4(a_tl,0);
     // vec4 pos =rotate*scalate*vertex_position;
     vec4 pos =scalate*(vertex_position);

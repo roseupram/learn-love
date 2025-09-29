@@ -147,10 +147,11 @@ function mesh:new(ops)
     self.anchor=ops.anchor or Point()
     local dfv = {
         sc={1,1,1},
+        quat={0,0,0,1},
         color =  { 1, 1, 1, 1 } ,
         fallback =  { 0, 0, 0 }
     }
-    for i,k in ipairs{"tl","sc","color","rot"} do
+    for i,k in ipairs{"tl","sc","color","quat"} do
         local key="_"..k
         local attribute="a_"..k
         local data = {}
@@ -161,7 +162,7 @@ function mesh:new(ops)
                 data[inst] = dfv[k] or dfv["fallback"]
             end
         end
-        self[key]=love.graphics.newMesh({{attribute,"float",3}},data,nil)
+        self[key]=love.graphics.newMesh({{attribute,"float",#data[1]}},data,nil)
         self._mesh:attachAttribute(attribute, self[key], "perinstance")
     end
     if ops.tl then
@@ -298,9 +299,9 @@ end
 function mesh:color_tone(color)
     self._color:setVertex(1,color:unpack())
 end
-function mesh:set_rotate(index,p3d)
-    index,p3d=resolve_index_data(index,p3d)
-    self._rot:setVertex(index, p3d:unpack())
+function mesh:set_quat(index,quat)
+    index,quat=resolve_index_data(index,quat)
+    self._quat:setVertex(index, quat:unpack())
 end
 function mesh:draw()
     love.graphics.push('all')

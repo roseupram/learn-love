@@ -11,6 +11,7 @@ local Camera=require('3d.camera')
 local Mesh=require('3d.mesh')
 local Shader=require('shader')
 local Node=require('3d.node')
+local Quat=require('3d.quat')
 
 
 local my_shader
@@ -103,8 +104,10 @@ function sc:update(dt)
     local dvdt = velocity * dt * self.velocity_P*FP.clamp(distance,0,1)
     if distance>.01 then
         self.player:move(dvdt)
+        local step=30
         local yr = math.atan2(velocity.x,velocity.z)
-        self.player:set_rotate(Point(0,yr,0))
+        local q=Quat.from_normal(Point(0,1,0),yr)
+        self.player:set_quat(q)
     end
 end
 
@@ -150,7 +153,6 @@ function sc:new()
         instance = 3, tl = tfs[1] ,
     }
     -- self:push(cube,"cubes")
-    cube:set_position(3,Point(3,0,-1))
 
     my_shader=Shader.new('isometric','frag')
     self.image= lg.newImage("images/player.png")

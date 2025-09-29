@@ -13,7 +13,11 @@ function Vector:new(config)
     }
     self.name=config.name
     local default=config.default
-    self.keys=config.keys or Array(table.keys(default)):sorted()
+    if config.keys then
+        self.keys = Array(config.keys)
+    else
+        self.keys = Array(table.keys(default)):sorted()
+    end
     self:merge(default)
 end
 ---inplace multiply
