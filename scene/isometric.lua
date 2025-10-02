@@ -12,6 +12,7 @@ local Mesh=require('3d.mesh')
 local Shader=require('shader')
 local Node=require('3d.node')
 local Quat=require('3d.quat')
+local Movable=require('scene.movable')
 
 
 local my_shader
@@ -29,7 +30,11 @@ function sc:draw()
         if child.shader then
             child.shader:send('camera_param', 'column', cam:param_mat())
         end
-        child:draw()
+        if child.render then
+            child:render()
+        else
+            child:draw()
+        end
     end
     lg.setShader()
     lg.setDepthMode()
@@ -38,10 +43,16 @@ function sc:draw()
 end
 ---@param dt number
 function sc:update(dt)
+    local env_size=20
+    local nav_mesh={
+        Point{-env_size,0,-env_size},
+        Point{env_size,0,-env_size},
+        Point{env_size,0,env_size},
+        Point{-env_size,0,env_size},
+    }
     local Time = self.Time+dt
     self.Time=Time
     timer:update(dt)
-    local lk=love.keyboard
     local dz, dx = 0, 0
     local mouse_pos=Vec(love.mouse.getPosition())
     if self.rotate_pivot>0 then
@@ -104,11 +115,10 @@ function sc:update(dt)
     local dvdt = velocity * dt * self.velocity_P*FP.clamp(distance,0,1)
     if distance>.01 then
         self.player:move(dvdt)
-        local step=30
         local yr = math.atan2(velocity.x,velocity.z)
-        local q=Quat.from_normal(Point(0,1,0),yr)
-        self.player:set_quat(q)
     end
+    local q = Quat.from_normal(Point(0, 1, 0), math.rad(-cam.y_rot))
+    self.player:set_quat(q)
 end
 
 function sc:new()
@@ -153,20 +163,12 @@ function sc:new()
         instance = 3, tl = tfs[1] ,
     }
     -- self:push(cube,"cubes")
-
+    local enemy=Movable{image=lg.newImage("images/enemy.png")}
+    enemy:set_position(Point(-2,0,-4))
+    self:push(enemy,'enemy')
     my_shader=Shader.new('isometric','frag')
     self.image= lg.newImage("images/player.png")
-    self.player = Mesh { vertex = {
-        { -1, 1,  0, 1, 1, 1, 0, 0 },
-        { 1,  1,  0, 1, 1, 1, 1, 0 },
-        { 1,  -1, 0, 1, 1, 1, 1, 1 },
-        { -1, -1, 0, 1, 1, 1, 0, 1 },
-    }, texture = self.image,
-        anchor = Point(0, -1, 0),
-    }
-    self.player.shader=Shader.new("outline")
-    self.player.shader:send('edge_color',{.9,.5,.3,1})
-    self.player:set_position(Point(-1,0,-3))
+    self.player=Movable{image=self.image}
     local w,h=lg.getDimensions()
     love.mouse.setPosition(w/2,h/2)
     -- love.mouse.setVisible(false)
@@ -174,14 +176,16 @@ function sc:new()
     self.clicked=false
     self.target_pos=Point()
     self.velocity_P=1
-    self.circle=Mesh.ring()
+
     local plt={
         red = Color(.9, .2, .2),
         cyan = Color(.1, .7, .9),
     }
+    self.circle=Mesh.ring()
     self.circle:color_tone(plt.cyan:clone())
     self:push(self.player,"player")
     self:push(self.circle,"circle")
+
     local line= Mesh.line{
         points = {
             -1, 0, 0,

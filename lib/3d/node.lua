@@ -24,11 +24,15 @@ function Node:render()
     self:draw()
     self:after_draw()
 end
-function Node:before_draw() end
-function Node:after_draw() end
+function Node:before_draw()
+    love.graphics.push('all')
+end
+function Node:after_draw()
+    love.graphics.pop()
+end
 function Node:draw()
     self.to_draw:each(function (child)
-        child:draw()
+        child:render()
     end)
 end
 function Node:mousepressed(x,y,button,is_touch,times) end

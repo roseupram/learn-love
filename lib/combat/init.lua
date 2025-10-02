@@ -8,7 +8,6 @@ local FP        = require('FP')
 ---@class combat
 ---@operator call:combat
 ---@field content rectsize
----@field hexgrid HexGrid
 local combat=prototype{name='combat'}
 local libs={'coordinate','draw'}
 for i,lib in ipairs(libs) do

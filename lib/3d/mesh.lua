@@ -2,12 +2,21 @@ local protype=require('prototype')
 local Face=require('3d.face')
 local FP=require('FP')
 local AABB=require("3d.aabb")
-local Color=require('color')
+-- local Color=require('color')
 local path=(...):gsub("[^.]+$","") -- remove last name
 ---@type Point
 local Point=require(path..'point')
+---@alias Mesh_ops { vmap:table,vertex:table,mode:string,
+---texture:any, wireframe: boolean, instance: number,usage:string}
+
 ---@class Mesh
----@overload fun(ops:{vmap:table,vertex:table,mode:string}):Mesh
+---@field _tl any
+---@field _sc any
+---@field _color any
+---@field _quat any
+---@field anchor Point offset of anchor
+---@overload fun(ops:Mesh_ops):Mesh
+---@see Mesh.new
 local mesh = protype{
     name = "Mesh",
 }
@@ -306,9 +315,6 @@ end
 function mesh:draw()
     love.graphics.push('all')
     love.graphics.setWireframe(self.wireframe)
-    if self.shader then
-         love.graphics.setShader(self.shader)
-    end
     if self.instance>1 then
         love.graphics.drawInstanced(self._mesh,self.instance)
     else
