@@ -61,6 +61,7 @@ end
 ---@param base any
 ---@return unknown
 function FP.cycle(x,left,right,base)
+    assert(left<right,string.format("wrong range (%d, %d)",left,right))
     local range=right-left+1
     base = base or left
     return (x-base)%range+left

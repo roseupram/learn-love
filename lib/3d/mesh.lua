@@ -214,14 +214,6 @@ function mesh:get_faces()
     if self._faces then
         return self._faces
     end
-    local function hash_f(p3d)
-       local mult=1000
-       local hash=""
-       p3d:each(function (value)
-            hash=hash.. FP.round(value*mult)
-       end)
-       return hash
-    end
     local triangles=self:get_triangles()
     ---merge triangles by normal and base_point 
     local normal_base_points={}
@@ -233,7 +225,7 @@ function mesh:get_faces()
         local BC=C-B
         local n= AB:cross(BC):normal()
         local t = "t" .. FP.round(n:dot(A) * 1000)
-        local n_hash = hash_f(n)
+        local n_hash = n:hash()
         if normal_base_points[n_hash] == nil then
             normal_base_points[n_hash]={n}
         end
@@ -242,7 +234,7 @@ function mesh:get_faces()
         end
         local points=normal_base_points[n_hash][t]
         for _,P in ipairs{A,B,C} do
-            local p_hash=hash_f(P)
+            local p_hash=P:hash()
             if points[p_hash] == nil then
                 table.insert(points, P)
                 points[p_hash]=true

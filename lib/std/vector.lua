@@ -68,6 +68,7 @@ function Vector:dot(vec)
     end)
     return res
 end
+--- func(accumulator,value,key)
 function Vector:reduce(func,init_value)
     return self.keys:reduce(function (accumulator,key,index)
         return func(accumulator,self[key],key)
@@ -202,5 +203,17 @@ function Vector:table()
         table.insert(t,self[key])
     end)
     return t
+end
+function Vector:hash()
+    local hashs=self:map(function (v)
+        return tostring(FP.round(v*1e3))
+    end)
+    return hashs:join(",")
+end
+function Vector:join(seperator)
+    seperator=seperator or ', '
+    return self.keys:map(function (k)
+        return self[k]
+    end):join(seperator)
 end
 return Vector

@@ -43,13 +43,6 @@ function sc:draw()
 end
 ---@param dt number
 function sc:update(dt)
-    local env_size=20
-    local nav_mesh={
-        Point{-env_size,0,-env_size},
-        Point{env_size,0,-env_size},
-        Point{env_size,0,env_size},
-        Point{-env_size,0,env_size},
-    }
     local Time = self.Time+dt
     self.Time=Time
     timer:update(dt)
@@ -122,6 +115,44 @@ function sc:update(dt)
 end
 
 function sc:new()
+    local map={}
+    local p=Point(1,1,1)
+    map[p:hash()]=p
+    print(p:hash(),map[p:hash()])
+    local points = { { -2, -2 }, { 2, -2 }, { 2, 2 }, { -2, 2 },
+        { -1, -1 },{-1,1},{1,1},{1,-1} }
+    local polygon={
+    }
+    for i =1,4 do
+        table.insert(polygon,points[i][1])
+        table.insert(polygon,points[i][2])
+    end
+    table.insert(polygon, points[1][1])
+    table.insert(polygon, points[1][2])
+    for i =5,8 do
+        table.insert(polygon,points[i][1])
+        table.insert(polygon,points[i][2])
+    end
+    table.insert(polygon, points[5][1])
+    table.insert(polygon, points[5][2])
+
+    local triangles=love.math.triangulate(polygon)
+    local polygon_vertex={}
+    local colors={{1,0,0},{0,1,0},{0,0,1},{1,0,1},{0,1,1}}
+    for i,tri in ipairs(triangles) do
+        --{x,y,x,y,x,y}
+        -- print(unpack(tri))
+        local r, g, b = unpack(colors[FP.cycle(i,1,#colors)])
+        for k=1,3 do
+            local x=tri[k*2-1]
+            local z=tri[k*2]
+            local y=0
+            table.insert(polygon_vertex,{x,y,z,r,g,b,0,0})
+        end
+    end
+    local polygon_mesh=Mesh{vertex=polygon_vertex,mode="triangles"}
+    self:push(polygon_mesh,"polygon")
+
     local beat = love.audio.newSource('audio/beat.ogg','static')
     beat:setLooping(true)
     beat:setVolume(.2)
