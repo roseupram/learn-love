@@ -12,6 +12,7 @@ local Mesh=require('3d.mesh')
 local Shader=require('shader')
 local Node=require('3d.node')
 local Quat=require('3d.quat')
+local Navigate=require('3d.navigate')
 local Movable=require('scene.movable')
 
 
@@ -115,42 +116,41 @@ function sc:update(dt)
 end
 
 function sc:new()
-    local map={}
-    local p=Point(1,1,1)
-    map[p:hash()]=p
-    print(p:hash(),map[p:hash()])
     local points = { { -2, -2 }, { 2, -2 }, { 2, 2 }, { -2, 2 },
         { -1, -1 },{-1,1},{1,1},{1,-1} }
-    local polygon={
-    }
-    for i =1,4 do
-        table.insert(polygon,points[i][1])
-        table.insert(polygon,points[i][2])
-    end
-    table.insert(polygon, points[1][1])
-    table.insert(polygon, points[1][2])
-    for i =5,8 do
-        table.insert(polygon,points[i][1])
-        table.insert(polygon,points[i][2])
-    end
-    table.insert(polygon, points[5][1])
-    table.insert(polygon, points[5][2])
-
-    local triangles=love.math.triangulate(polygon)
+    local nav=Navigate{points=points,map={
+        1,2,3,4,1,5,6,7,8,5
+    }}
+    local convex=nav:convex_decompose()
+    local tris=nav:triangulate()
     local polygon_vertex={}
     local colors={{1,0,0},{0,1,0},{0,0,1},{1,0,1},{0,1,1}}
-    for i,tri in ipairs(triangles) do
-        --{x,y,x,y,x,y}
-        -- print(unpack(tri))
+    for i,tri in ipairs(tris) do
         local r, g, b = unpack(colors[FP.cycle(i,1,#colors)])
         for k=1,3 do
-            local x=tri[k*2-1]
-            local z=tri[k*2]
-            local y=0
+            local x,z,y=tri[k]:unpack()
             table.insert(polygon_vertex,{x,y,z,r,g,b,0,0})
         end
     end
+    local convex_vertex={}
+    local convex_map={}
+    for i,cvex in ipairs(convex) do
+        local r, g, b = unpack(colors[FP.cycle(i,1,#colors)])
+        for _,p in ipairs(cvex) do
+            local x, z, y = p:unpack()
+            table.insert(convex_vertex, { x, y, z, r, g, b, 0, 0 })
+        end
+        for k=1,#cvex-2 do
+            local offset=(i-1)*4+1
+            table.insert(convex_map,offset)
+            table.insert(convex_map,k+offset)
+            table.insert(convex_map,k+1+offset)
+        end
+    end
+    local convex_mesh=Mesh{vertex=convex_vertex,vmap=convex_map,mode="triangles"}
+    self:push(convex_mesh,"convex")
     local polygon_mesh=Mesh{vertex=polygon_vertex,mode="triangles"}
+    polygon_mesh:set_position(Point(-6,0,0))
     self:push(polygon_mesh,"polygon")
 
     local beat = love.audio.newSource('audio/beat.ogg','static')

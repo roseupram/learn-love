@@ -33,3 +33,4 @@ left is x+, up is y+, inward is z+, so that's a **left-hand coordinate**,
 - [grid](https://ruanyifeng.com/blog/2019/03/grid-layout-tutorial.html): css 
 - [glTF](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html): format specification
 - [scratchapixel](https://www.scratchapixel.com/): teach computer graphcis
+- [computational geometry](https://swaminathanj.github.io/cg/index.html): convex polygon problem

@@ -12,7 +12,11 @@ local point = vp {
 }
 function point:new(x,y,z)
     if type(x) =='table' then
-        x,y,z=unpack(x)
+        if x.name == "Point" then
+            x, y, z = x:unpack()
+        else
+            x, y, z = unpack(x)
+        end
     end
     self.x=x
     self.y=y
