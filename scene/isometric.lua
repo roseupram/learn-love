@@ -118,11 +118,10 @@ end
 function sc:new()
     local points = { { -2, -2 }, { 2, -2 }, { 2, 2 }, { -2, 2 },
         { -1, -1 },{-1,1},{1,1},{1,-1} }
-    local nav=Navigate{points=points,map={
+    local polygon=Navigate.polygon{points=points,map={
         1,2,3,4,1,5,6,7,8,5
     }}
-    local convex=nav:convex_decompose()
-    local tris=nav:triangulate()
+    local tris=polygon:triangulate()
     local polygon_vertex={}
     local colors={{1,0,0},{0,1,0},{0,0,1},{1,0,1},{0,1,1}}
     for i,tri in ipairs(tris) do
@@ -132,6 +131,11 @@ function sc:new()
             table.insert(polygon_vertex,{x,y,z,r,g,b,0,0})
         end
     end
+    local polygon_mesh=Mesh{vertex=polygon_vertex,mode="triangles"}
+    polygon_mesh:set_position(Point(-6,0,0))
+    self:push(polygon_mesh,"polygon")
+    local convex=Navigate.convex_decompose(polygon)
+    local cni=Navigate.get_neighbor_info(convex)
     local convex_vertex={}
     local convex_map={}
     for i,cvex in ipairs(convex) do
@@ -149,9 +153,6 @@ function sc:new()
     end
     local convex_mesh=Mesh{vertex=convex_vertex,vmap=convex_map,mode="triangles"}
     self:push(convex_mesh,"convex")
-    local polygon_mesh=Mesh{vertex=polygon_vertex,mode="triangles"}
-    polygon_mesh:set_position(Point(-6,0,0))
-    self:push(polygon_mesh,"polygon")
 
     local beat = love.audio.newSource('audio/beat.ogg','static')
     beat:setLooping(true)

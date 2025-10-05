@@ -51,7 +51,7 @@ end
 ---@field normal Point indicate orientation of face
 ---@field points Point[]
 function Face:new(ops)
-    self.normal = ops.normal
+    self.normal = ops.normal or Point(0,0,1)
     if ops.sorted then
         self.points = ops.points
     else
@@ -112,5 +112,107 @@ function Face:__add(point)
     local new_face = self:clone()
     new_face:add(point)
     return new_face
+end
+function Face:triangulate()
+    if self.tris_cache then
+        return self.tris_cache
+    end
+    local tris={}
+    local points={table.unpack(self.points)}
+    while #points>3 do
+        for i,point in ipairs(points) do
+            local A=points[FP.cycle(i-1,1,#points)]
+            local B=point
+            local C=points[FP.cycle(i+1,1,#points)]
+            local tri_face=Face{points={A,B,C},sorted=true}
+            if tri_face:is_convex() and tri_face:no_point_in(points) then
+                table.remove(points,i)
+                table.insert(tris,{A,B,C})
+                break
+            end
+        end
+    end
+    table.insert(tris,{unpack(points)})
+    self.tris_cache=tris
+    return tris
+end
+function Face:is_convex()
+    local normal = self.normal
+    local points=self.points
+    local size=#points
+    if size==3 then
+        size=1
+    end
+    for i=1,size do
+        local A=points[i]
+        local B=points[FP.cycle(i+1,1,#points)]
+        local C=points[FP.cycle(i+2,1,#points)]
+        local AB, BC = B - A, C - B
+        local is_convex_vertex = AB:cross(BC):dot(normal) > 0
+        if not is_convex_vertex then
+            return false
+        end
+    end
+    return true
+end
+---@param points Point[]
+---@return boolean
+function Face:no_point_in(points)
+    local polygon=self.points
+    for i,point in ipairs(points) do
+        local is_in=true
+        for k,A in ipairs(polygon) do
+            local B=polygon[FP.cycle(k+1,1,#polygon)]
+            local AB,AP=B-A,point-A
+            if AB:cross(AP):dot(self.normal)<=0  then
+                is_in=false
+                break
+            end
+        end
+        if is_in then
+            return false
+        end
+    end
+    return true
+end
+function Face:convex_hull()
+    ---https://swaminathanj.github.io/cg/ConvexHull.html
+    local Normal=self.normal
+
+    local ccw_order={}
+    local set={}
+    local base_p=self.points[1]
+    for i,point in ipairs(self.points) do
+        if set[point:hash()]==nil then
+            table.insert(ccw_order,point)
+            set[point:hash()] = point
+        end
+        if point.y<base_p.y  then
+            base_p=point
+        end
+    end
+    table.sort(ccw_order,function (a, b)
+        local pa=a-base_p
+        local pb=b-base_p
+        return pa:cross(pb):dot(Normal)>0
+    end)
+    local hull={}
+    for i,p in ipairs(ccw_order) do
+        table.insert(hull,p)
+        local is_last3_not_convex = true
+        while #hull>=3 and is_last3_not_convex do
+            ---check last 3
+            local A = hull[#hull - 2]
+            local B = hull[#hull - 1]
+            local C = hull[#hull - 0]
+            local AB, BC = B - A, C - B
+            if AB:cross(BC):dot(Normal) > 0 then
+                is_last3_not_convex = false
+            else
+                table.remove(hull, #hull - 1)
+            end
+        end
+    end
+    return hull
 end
 return Face
