@@ -3,6 +3,102 @@ local FP=require('FP')
 local Face=require('3d.face')
 ---@alias Polygon Point[][]
 local Navigate=require("prototype"){name="Navigate"}
+function Navigate.path(faces,from,to)
+    local polygon_points={}
+    local start_i=-1
+    local end_i=-1
+    for i,f in ipairs(faces) do
+        polygon_points[i]=f.points
+        if f:has_point_in(from) then
+            start_i=i
+        elseif f:has_point_in(to) then
+            end_i = i
+        end
+    end
+    print(start_i,end_i)
+    if start_i<0 or end_i<0 then
+        return false
+    end
+    local neighbors=Navigate.get_neighbor_info(polygon_points)
+    ---[[point,point]...]
+    local q={start_i}
+    local visited={}
+    visited[start_i]=true
+    local record={}
+    record[start_i]={cost=-1}
+    while #q>0 do
+        table.sort(q,function (a, b)
+            return record[a].cost<record[b].cost
+        end)
+        local current=q[1]
+        table.remove(q,1)
+        for i, neighb in ipairs(neighbors[current]) do
+            local index,edge_a,edge_b=unpack(neighb)
+            if not visited[index] then
+                local polygon = polygon_points[index]
+                local g = from:distance(polygon[1])
+                local pi = 1
+                for k, p in ipairs(polygon) do
+                    local d = p:distance(from)
+                    if d < g then
+                        pi = k
+                        g = d
+                    end
+                end
+                local h = to:distance(polygon[pi])
+                local cost = g + h
+                if record[index] then
+                    if record[index].cost > cost then
+                        record[index] = { cost = cost, parent = current }
+                    end
+                else
+                    record[index] = { cost = cost, parent = current }
+                end
+                if index==end_i then
+                    q={}
+                    break
+                end
+                table.insert(q,index)
+            end
+        end
+    end
+    local parent=record[end_i].parent
+    local path={end_i}
+    while parent do
+        table.insert(path,parent)
+        parent=record[parent].parent
+    end
+    local edge_pass={}
+    for i=#path,2,-1 do
+        local current=path[i]
+        local next=path[i-1]
+        for _,neighb in ipairs(neighbors[current]) do
+            local index,A,B=table.unpack(neighb)
+            if index==next then
+                table.insert(edge_pass,{A,B})
+                break
+            end
+        end
+    end
+    ---TODO Funnel Algorithm to optimize
+    local waypoint={}
+    local base=from
+    for i,e in ipairs(edge_pass) do
+        local A,B = table.unpack(e)
+        local SP=to-base
+        local AP=A-base
+        local BP=B-base
+        local c=SP:cross(AP):dot(SP:cross(BP))
+        if A:distance(to) < B:distance(to) then
+            base = A
+        else
+            base = B
+        end
+        table.insert(waypoint, base)
+    end
+    table.insert(waypoint, to)
+    return waypoint
+end
 function Navigate.polygon(ops)
     local points={}
     if ops.map then
@@ -14,7 +110,7 @@ function Navigate.polygon(ops)
             points[i]= Point(point)
         end
     end
-    local normal=Point(0,0,1)
+    local normal=Point(0,1,0)
     return Face{points=points,normal=normal,sorted=true}
 end
 
@@ -94,6 +190,8 @@ function Navigate.merge_triangle(convex,tri,A,B)
     end
     return is_success
 end
+---@param polygon Face
+---@return table
 function Navigate.convex_decompose(polygon)
     local tris=polygon:triangulate()
     local neighbors=Navigate.get_neighbor_info(tris)

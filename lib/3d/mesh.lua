@@ -1,4 +1,5 @@
 local protype=require('prototype')
+local Color=require('color')
 local Face=require('3d.face')
 local FP=require('FP')
 local AABB=require("3d.aabb")
@@ -190,6 +191,7 @@ function mesh:new(ops)
         self._mesh:setTexture(ops.texture)
     end
     self.outline=ops.outline or 0
+    self.transparent = false
 end
 function mesh:get_aabb(index)
     index = index or 1
@@ -298,7 +300,13 @@ function mesh:set_scale(index,p3d)
     self._sc:setVertex(index, p3d:unpack())
 end
 function mesh:color_tone(color)
+    color=Color(color)
     self._color:setVertex(1,color:unpack())
+    if color.a<1 then
+        self.transparent=true
+    else
+        self.transparent=false
+    end
 end
 function mesh:set_quat(index,quat)
     index,quat=resolve_index_data(index,quat)

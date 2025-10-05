@@ -1,5 +1,4 @@
 local pttype=require('prototype')
-local Face=pttype{name="Face"}
 local FP=require('FP')
 local Point=require('3d.point')
 local function sort_points(points,normal)
@@ -37,7 +36,6 @@ local function sort_points(points,normal)
     if ca<0 then
         local left,right =1, #res
         while(left<right) do
-            
             local t = res[left]
             res[left]=res[right]
             res[right]=t
@@ -50,8 +48,10 @@ end
 ---@class Face
 ---@field normal Point indicate orientation of face
 ---@field points Point[]
+local Face=pttype{name="Face"}
+
 function Face:new(ops)
-    self.normal = ops.normal or Point(0,0,1)
+    self.normal = ops.normal or Point(0,1,0)
     if ops.sorted then
         self.points = ops.points
     else
@@ -154,6 +154,9 @@ function Face:is_convex()
         end
     end
     return true
+end
+function Face:has_point_in(point)
+    return not self:no_point_in({point})
 end
 ---@param points Point[]
 ---@return boolean

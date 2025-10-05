@@ -20,6 +20,18 @@ function Vector:new(config)
     end
     self:merge(default)
 end
+function Vector:_unpack_input(...)
+    local input={...}
+    local a=input[1]
+    if type(a)=="table" then
+        if a.name==self.name then
+            return a:unpack()
+        else
+            return table.unpack(a)
+        end
+    end
+    return table.unpack(input)
+end
 ---inplace multiply
 function Vector:mul(nv)
     if type(nv)=="number" then

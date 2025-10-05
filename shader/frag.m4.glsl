@@ -8,6 +8,9 @@ vec4 effect(vec4 base_color, Image tex, vec2 tex_coord,vec2 screen_coord){
     vec4 color_tone=v_color;
     vec4 pixel=tex_color*base_color*color_tone; // scale it by 10, pure color
     pixel.r+=fract(time)*.001;
-    gl_FragDepth = gl_FragCoord.z+float(pixel.a<.001);
+    if (pixel.a<.001) {
+        discard;
+    }
+    // gl_FragDepth = gl_FragCoord.z+float(pixel.a<.001);
     return pixel;
 }

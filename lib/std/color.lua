@@ -12,6 +12,7 @@ local Color = proto_vector{
 }
 Color.keys=Array{'r','g','b','a'}
 function Color:new(r,g,b,a)
+    r,g,b,a=self:_unpack_input(r,g,b,a)
     self.r=r
     self.g=g
     self.b=b

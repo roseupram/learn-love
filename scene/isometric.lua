@@ -12,6 +12,7 @@ local Mesh=require('3d.mesh')
 local Shader=require('shader')
 local Node=require('3d.node')
 local Quat=require('3d.quat')
+local Face=require('3d.face')
 local Navigate=require('3d.navigate')
 local Movable=require('scene.movable')
 
@@ -20,13 +21,35 @@ local my_shader
 local lg = love.graphics
 local sc = Node{name="Isometric"}
 function sc:draw()
+    lg.push('all')
     local bg_color = {.2,.3,.3}
     lg.clear(table.unpack(bg_color))
     lg.print(self.name..'\nFPS:'..love.timer.getFPS(),1,1)
     lg.setDepthMode('less',true)
     lg.setShader(my_shader)
     local cam = self.camera
+    local transp={}
+    local to_draw={}
     for i,child in ipairs(self.to_draw) do
+        if child.transparent then
+            table.insert(transp,child)
+        else
+            table.insert(to_draw,child)
+        end
+    end
+    table.sort(transp,function (a, b)
+        local pa=a:get_position()
+        local pb=b:get_position()
+        if pa.y~=pb.y then
+            return pa.y < pb.y
+        else
+            return pa.z<pb.z
+        end
+    end)
+    for i,child in ipairs(transp) do
+        table.insert(to_draw, child)
+    end
+    for i,child in ipairs(to_draw) do
         -- lg.setWireframe(true)
         if child.shader then
             child.shader:send('camera_param', 'column', cam:param_mat())
@@ -40,7 +63,19 @@ function sc:draw()
     lg.setShader()
     lg.setDepthMode()
     local x, y =love.mouse.getPosition()
-    lg.circle('fill',x,y,10)
+    lg.setColor(1,1,0)
+    local w,h = lg.getDimensions()
+    local scale=FP.clamp(math.max(w,h)/100,10,20)
+    local polygon={0,0,1.2,1,1.5,2,.5,1}
+    for i=1,#polygon/2 do
+        polygon[i*2-1]=polygon[i*2-1]*scale+x
+        polygon[i*2]=polygon[i*2]*scale+y
+    end
+    lg.polygon('fill',polygon)
+    lg.setColor(.3,.3,.7)
+    lg.setLineWidth(2)
+    lg.polygon('line',polygon)
+    lg.pop()
 end
 ---@param dt number
 function sc:update(dt)
@@ -70,12 +105,27 @@ function sc:update(dt)
         self.velocity_P=(times-1)*5+3
         self.clicked=false
         local p, d = cam:ray(love.mouse.getPosition())
-        local A = Point(0, -.1, 0) -- (A,n) is a plane
+        local A = Point(0, .1, 0) -- (A,n) is a plane
         local n = Point(0, 1, 0)
         local t = (p - A):dot(n) / (d:dot(n))
         local gp = p - d * t
         self.circle:set_position(gp)
         self.target_pos=gp
+
+        local goal
+        for i,face in ipairs(self.convex_face) do
+            local t=face:test_ray(p,d)
+            if t then
+                goal=p+d*t
+            end
+        end
+        if goal then
+            local waypoints=Navigate.path(self.convex_face, self.player:get_position(), goal)
+            if waypoints then
+                self.waypoints=waypoints
+                self.target_pos=waypoints[1]
+            end
+        end
         local ground = self:get('ground')
         local aabb = ground:get_aabb() + ground:get_position()
         local point, face_n = aabb:test_ray(p, d)
@@ -102,22 +152,32 @@ function sc:update(dt)
     local player_pos=self.player:get_position()
     local PT = self.target_pos- player_pos
     local distance = PT:len()
+    if distance<.1 and #self.waypoints>0 then
+        self.target_pos=self.waypoints[1]
+        table.remove(self.waypoints,1)
+        PT = self.target_pos- player_pos
+        distance = PT:len()
+    end
     local velocity = PT:normal()
 
     local scale = FP.sin(Time,.2,.5)
     self.circle:set_scale(Point(scale,1,scale))
-    local dvdt = velocity * dt * self.velocity_P*FP.clamp(distance,0,1)
-    if distance>.01 then
-        self.player:move(dvdt)
-        local yr = math.atan2(velocity.x,velocity.z)
+    local dvdt = velocity * dt * self.velocity_P
+    if #self.waypoints==0 then
+        dvdt=dvdt*FP.clamp(distance,0,1)
     end
+    self.player:move(dvdt)
     local q = Quat.from_normal(Point(0, 1, 0), math.rad(-cam.y_rot))
     self.player:set_quat(q)
 end
 
 function sc:new()
-    local points = { { -2, -2 }, { 2, -2 }, { 2, 2 }, { -2, 2 },
-        { -1, -1 },{-1,1},{1,1},{1,-1} }
+    local plt={
+        red = Color(.9, .2, .2),
+        cyan = Color(.1, .7, .9),
+    }
+    local points = { { -2,0, -2 }, { -2,0, 2 }, { 2,0, 2 }, { 2,0, -2 },
+        { -1,0, -1 },{1,0,-1},{1,0,1},{-1,0,1} }
     local polygon=Navigate.polygon{points=points,map={
         1,2,3,4,1,5,6,7,8,5
     }}
@@ -127,21 +187,23 @@ function sc:new()
     for i,tri in ipairs(tris) do
         local r, g, b = unpack(colors[FP.cycle(i,1,#colors)])
         for k=1,3 do
-            local x,z,y=tri[k]:unpack()
+            local x,y,z=tri[k]:unpack()
             table.insert(polygon_vertex,{x,y,z,r,g,b,0,0})
         end
     end
     local polygon_mesh=Mesh{vertex=polygon_vertex,mode="triangles"}
     polygon_mesh:set_position(Point(-6,0,0))
     self:push(polygon_mesh,"polygon")
+    polygon_mesh:color_tone{1,1,1,.5}
     local convex=Navigate.convex_decompose(polygon)
     local cni=Navigate.get_neighbor_info(convex)
     local convex_vertex={}
     local convex_map={}
+    self.convex_face={}
     for i,cvex in ipairs(convex) do
         local r, g, b = unpack(colors[FP.cycle(i,1,#colors)])
         for _,p in ipairs(cvex) do
-            local x, z, y = p:unpack()
+            local x, y, z = p:unpack()
             table.insert(convex_vertex, { x, y, z, r, g, b, 0, 0 })
         end
         for k=1,#cvex-2 do
@@ -150,6 +212,7 @@ function sc:new()
             table.insert(convex_map,k+offset)
             table.insert(convex_map,k+1+offset)
         end
+        table.insert(self.convex_face,Face{points=cvex,sorted=true})
     end
     local convex_mesh=Mesh{vertex=convex_vertex,vmap=convex_map,mode="triangles"}
     self:push(convex_mesh,"convex")
@@ -163,6 +226,15 @@ function sc:new()
     self.camera=Camera()
     lg.setDepthMode('less',true)
     -- love.mouse.setRelativeMode(true)
+    local w,h=lg.getDimensions()
+    love.mouse.setPosition(w/2,h/2)
+    love.mouse.setVisible(false)
+    love.mouse.setGrabbed(true)
+    self:resize(w,h)
+    self.clicked=false
+    self.target_pos=Point(1,0,1)
+    self.waypoints={}
+    self.velocity_P=1
     local vformat={
         {"VertexPosition","float",3},
         {"VertexColor","float",3},
@@ -201,23 +273,12 @@ function sc:new()
     my_shader=Shader.new('isometric','frag')
     self.image= lg.newImage("images/player.png")
     self.player=Movable{image=self.image}
-    local w,h=lg.getDimensions()
-    love.mouse.setPosition(w/2,h/2)
-    -- love.mouse.setVisible(false)
-    self:resize(w,h)
-    self.clicked=false
-    self.target_pos=Point()
-    self.velocity_P=1
 
-    local plt={
-        red = Color(.9, .2, .2),
-        cyan = Color(.1, .7, .9),
-    }
-    self.circle=Mesh.ring()
-    self.circle:color_tone(plt.cyan:clone())
     self:push(self.player,"player")
-    self:push(self.circle,"circle")
 
+    self.circle=Mesh.ring()
+    self.circle:color_tone(plt.cyan:clone()-Color(0,0,0,.3))
+    self:push(self.circle,"circle")
     local line= Mesh.line{
         points = {
             -1, 0, 0,
