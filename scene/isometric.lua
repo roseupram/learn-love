@@ -235,8 +235,10 @@ function sc:new()
     -- love.mouse.setRelativeMode(true)
     local w,h=lg.getDimensions()
     love.mouse.setPosition(w/2,h/2)
-    love.mouse.setVisible(false)
-    -- love.mouse.setGrabbed(true)
+    if love.config.Release then
+        love.mouse.setVisible(false)
+        love.mouse.setGrabbed(true)
+    end
     self:resize(w,h)
     self.clicked=false
     self.target_pos=Point(1,0,1)

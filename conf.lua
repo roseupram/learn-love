@@ -2,6 +2,7 @@
 -- then load main.lua
 -- local __verson=require('version')
 function love.conf(t)
+    love.config={Release=true}
     t.console=false
     t.window.width=1024
     t.window.height=768
