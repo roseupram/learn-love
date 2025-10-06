@@ -202,6 +202,12 @@ function Vector:abs()
     return self:map(math.abs)
 end
 function Vector:__eq(v)
+    if not v.name then
+        return false
+    end
+    if self.name~=v.name then
+        return false
+    end
     return self.keys:every(function (key)
         return self[key]==v[key]
     end)

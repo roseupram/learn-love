@@ -297,7 +297,7 @@ function mesh:move(index,dv)
 end
 function mesh:set_scale(index,p3d)
     index,p3d=resolve_index_data(index,p3d)
-    self._sc:setVertex(index, p3d:unpack())
+    self._sc:setVertex(index, Point(p3d):unpack())
 end
 function mesh:color_tone(color)
     color=Color(color)

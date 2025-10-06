@@ -15,7 +15,6 @@ function Navigate.path(faces,from,to)
             end_i = i
         end
     end
-    print(start_i,end_i)
     if start_i<0 or end_i<0 then
         return false
     end
@@ -25,7 +24,7 @@ function Navigate.path(faces,from,to)
     local visited={}
     visited[start_i]=true
     local record={}
-    record[start_i]={cost=-1}
+    record[start_i]={cost=0}
     while #q>0 do
         table.sort(q,function (a, b)
             return record[a].cost<record[b].cost
@@ -59,6 +58,7 @@ function Navigate.path(faces,from,to)
                     break
                 end
                 table.insert(q,index)
+                visited[index]=true
             end
         end
     end
@@ -89,14 +89,60 @@ function Navigate.path(faces,from,to)
         local AP=A-base
         local BP=B-base
         local c=SP:cross(AP):dot(SP:cross(BP))
-        if A:distance(to) < B:distance(to) then
+        if A:distance(to)+A:distance(from) < B:distance(to)+B:distance(from) then
             base = A
         else
             base = B
         end
         table.insert(waypoint, base)
     end
+    table.insert(edge_pass,{to,to})
+    waypoint=Navigate.funnel_waypoint(edge_pass,from)
     table.insert(waypoint, to)
+    return waypoint
+end
+local function get_lr(base,A,B)
+    local normal=Point(0,1,0)
+    if (A-base):cross(B-base):dot(normal)<=0 then
+        return A,B
+    else
+        return B,A
+    end
+end
+function Navigate.funnel_waypoint(edge,start)
+    local waypoint={}
+    local apex=start
+    local left,right=get_lr(apex,edge[1][1],edge[1][2])
+    local Normal=Point(0,1,0)
+    local mid=(left+right)/2
+    local i=2
+    local right_i,left_i=1,1
+    while left~=right do
+        local newL,newR=get_lr(mid,table.unpack(edge[i]))
+        mid=(newL+newR)/2
+        if (right-apex):cross(newR-apex):dot(Normal)>=0 then
+            right=newR
+            right_i=i
+        end
+        if (newL-apex):cross(left-apex):dot(Normal)>=0 then
+            left=newL
+            left_i=i
+        end
+        local cant_shrink=(left-apex):cross(right-apex):dot(Normal)>0
+        if  cant_shrink then
+            if right:distance(apex)<left:distance(apex) then
+                apex=right
+                i=right_i
+            else
+                apex=left
+                i=left_i
+            end
+            left,right=get_lr(apex,table.unpack(edge[i+1]))
+            
+            table.insert(waypoint,apex)
+        end
+        i=FP.clamp(i+1,1,#edge)
+    end
     return waypoint
 end
 function Navigate.polygon(ops)

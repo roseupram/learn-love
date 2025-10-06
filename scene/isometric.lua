@@ -167,6 +167,7 @@ function sc:update(dt)
         dvdt=dvdt*FP.clamp(distance,0,1)
     end
     self.player:move(dvdt)
+    self:get("base_ring"):set_position(self.player:get_position())
     local q = Quat.from_normal(Point(0, 1, 0), math.rad(-cam.y_rot))
     self.player:set_quat(q)
 end
@@ -178,9 +179,14 @@ function sc:new()
     }
     local points = { { -2,0, -2 }, { -2,0, 2 }, { 2,0, 2 }, { 2,0, -2 },
         { -1,0, -1 },{1,0,-1},{1,0,1},{-1,0,1} }
+
     local polygon=Navigate.polygon{points=points,map={
         1,2,3,4,1,5,6,7,8,5
     }}
+    points = { { 0, 0, 0 }, { 0, 0, -3 }, { 3, 0, -4 }, { 3, 0, -10 }, { -1, 0, -10 }, { -1, 0, -8 }, { 1, 0, -8 },
+        {2,0,-6.5},{2,0,-5},{-1,0,-3.5},{-2,0,0}
+    }
+    polygon=Navigate.polygon{points=points}
     local tris=polygon:triangulate()
     local polygon_vertex={}
     local colors={{1,0,0},{0,1,0},{0,0,1},{1,0,1},{0,1,1}}
@@ -194,25 +200,26 @@ function sc:new()
     local polygon_mesh=Mesh{vertex=polygon_vertex,mode="triangles"}
     polygon_mesh:set_position(Point(-6,0,0))
     self:push(polygon_mesh,"polygon")
-    polygon_mesh:color_tone{1,1,1,.5}
+    -- polygon_mesh:color_tone{1,1,1,.5}
     local convex=Navigate.convex_decompose(polygon)
     local cni=Navigate.get_neighbor_info(convex)
     local convex_vertex={}
     local convex_map={}
     self.convex_face={}
+    local offset=1
     for i,cvex in ipairs(convex) do
         local r, g, b = unpack(colors[FP.cycle(i,1,#colors)])
         for _,p in ipairs(cvex) do
             local x, y, z = p:unpack()
             table.insert(convex_vertex, { x, y, z, r, g, b, 0, 0 })
         end
-        for k=1,#cvex-2 do
-            local offset=(i-1)*4+1
+        for k=offset,offset+#cvex-3 do
             table.insert(convex_map,offset)
-            table.insert(convex_map,k+offset)
-            table.insert(convex_map,k+1+offset)
+            table.insert(convex_map,k+1)
+            table.insert(convex_map,k+2)
         end
         table.insert(self.convex_face,Face{points=cvex,sorted=true})
+        offset=offset+#cvex
     end
     local convex_mesh=Mesh{vertex=convex_vertex,vmap=convex_map,mode="triangles"}
     self:push(convex_mesh,"convex")
@@ -229,7 +236,7 @@ function sc:new()
     local w,h=lg.getDimensions()
     love.mouse.setPosition(w/2,h/2)
     love.mouse.setVisible(false)
-    love.mouse.setGrabbed(true)
+    -- love.mouse.setGrabbed(true)
     self:resize(w,h)
     self.clicked=false
     self.target_pos=Point(1,0,1)
@@ -273,7 +280,9 @@ function sc:new()
     my_shader=Shader.new('isometric','frag')
     self.image= lg.newImage("images/player.png")
     self.player=Movable{image=self.image}
-
+    local base_ring=Mesh.ring()
+    base_ring:set_scale{.2,.2,.2}
+    self:push(base_ring,"base_ring")
     self:push(self.player,"player")
 
     self.circle=Mesh.ring()
