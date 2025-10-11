@@ -177,16 +177,16 @@ function sc:new()
         red = Color(.9, .2, .2),
         cyan = Color(.1, .7, .9),
     }
-    local points = { { -2,0, -2 }, { -2,0, 2 }, { 2,0, 2 }, { 2,0, -2 },
-        { -1,0, -1 },{1,0,-1},{1,0,1},{-1,0,1} }
+    local area = { { -2,0, -2 }, { -2,0, 2 }, { 4,0, 2 }, { 20,0, -2 },}
+    local obstacle={ { -1,0, -1 },{1,0,-1},{1,0,1},{-1,0,1} }
+    local points = Navigate.poly_diff(area,obstacle)
+    -- points=Navigate.poly_diff(points,obstacle)
 
-    local polygon=Navigate.polygon{points=points,map={
-        1,2,3,4,1,5,6,7,8,5
-    }}
+    local polygon=Navigate.polygon{points=points}
     points = { { 0, 0, 0 }, { 0, 0, -3 }, { 3, 0, -4 }, { 3, 0, -10 }, { -1, 0, -10 }, { -1, 0, -8 }, { 1, 0, -8 },
         {2,0,-6.5},{2,0,-5},{-1,0,-3.5},{-2,0,0}
     }
-    polygon=Navigate.polygon{points=points}
+    -- polygon=Navigate.polygon{points=points}
     local tris=polygon:triangulate()
     local polygon_vertex={}
     local colors={{1,0,0},{0,1,0},{0,0,1},{1,0,1},{0,1,1}}
@@ -198,7 +198,7 @@ function sc:new()
         end
     end
     local polygon_mesh=Mesh{vertex=polygon_vertex,mode="triangles"}
-    polygon_mesh:set_position(Point(-6,0,0))
+    polygon_mesh:set_position(Point(0,0,-10))
     self:push(polygon_mesh,"polygon")
     -- polygon_mesh:color_tone{1,1,1,.5}
     local convex=Navigate.convex_decompose(polygon)

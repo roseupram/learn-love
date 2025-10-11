@@ -158,6 +158,7 @@ end
 function Face:has_point_in(point)
     return not self:no_point_in({point})
 end
+--- no point inside, all point outside or on edge
 ---@param points Point[]
 ---@return boolean
 function Face:no_point_in(points)

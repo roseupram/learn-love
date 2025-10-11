@@ -2,7 +2,30 @@ local Point=require('3d.point')
 local FP=require('FP')
 local Face=require('3d.face')
 ---@alias Polygon Point[][]
-local Navigate=require("prototype"){name="Navigate"}
+local Navigate={}
+function Navigate.poly_diff(poly,d)
+    --- if d is a hole inside poly
+    local p1=Point(d[1])
+    local short_i=1
+    local short_k=1
+    local min_dist=p1:distance(Point(poly[1]))
+    for k,dp in ipairs(d) do
+    for i,p in ipairs(poly) do
+        local pd=Point(p):distance(Point(dp))
+        if pd<min_dist then
+            min_dist=pd
+            short_i=i
+            short_k=k
+        end
+    end
+    end
+    for i=1,#d do
+        table.insert(poly, short_i+i, d[FP.cycle(short_k+i-1,1,#d)])
+    end
+    table.insert(poly,short_i+#d+1,d[short_k])
+    table.insert(poly,short_i+#d+2,poly[short_i])
+    return poly
+end
 function Navigate.path(faces,from,to)
     local polygon_points={}
     local start_i=-1
@@ -46,6 +69,7 @@ function Navigate.path(faces,from,to)
                 end
                 local h = to:distance(polygon[pi])
                 local cost = g + h
+                --FIXME cost=cost+parent.cost
                 if record[index] then
                     if record[index].cost > cost then
                         record[index] = { cost = cost, parent = current }
@@ -80,7 +104,7 @@ function Navigate.path(faces,from,to)
             end
         end
     end
-    ---TODO Funnel Algorithm to optimize
+    ---Funnel Algorithm to optimize
     local waypoint={}
     local base=from
     for i,e in ipairs(edge_pass) do
@@ -138,6 +162,7 @@ function Navigate.funnel_waypoint(edge,start)
                 i=left_i
             end
             left,right=get_lr(apex,table.unpack(edge[i+1]))
+            mid=(left+right)/2
             
             table.insert(waypoint,apex)
         end
@@ -145,6 +170,9 @@ function Navigate.funnel_waypoint(edge,start)
     end
     return waypoint
 end
+
+---@param ops {points:table,map:table?}
+---@return Face
 function Navigate.polygon(ops)
     local points={}
     if ops.map then
@@ -250,33 +278,29 @@ function Navigate.convex_decompose(polygon)
         merged[ti]=true
         table.remove(q,1)
         local before_merge=#convex
-        for i, neighb in ipairs(neighbors[ti]) do
+        for _, neighb in ipairs(neighbors[ti]) do
             local index, A, B = table.unpack(neighb)
             if not merged[index] then
                 local tb = tris[index]
                 local success = Navigate.merge_triangle(convex, tb, A, B)
                 if success then
                     merged[index] = true
-                    table.insert(q,index)
+                    table.insert(q,1,index)
                 end
             end
         end
+
         if #convex==before_merge then
             table.insert(result,convex)
-            local next_i=-1
-            for i, neighb in ipairs(neighbors[ti]) do
-                local index, A, B = table.unpack(neighb)
-                if not merged[index] then
-                    next_i=index
+            for i=1,#tris do
+                if not merged[i] then
+                    table.insert(q,i)
+                    convex = { table.unpack(tris[q[1]]) }
                     break
                 end
             end
-            if next_i<0 then
-                break
-            end
-            convex={table.unpack(tris[next_i])}
-            table.insert(q,next_i)
         end
+
     end
     return result
 end
