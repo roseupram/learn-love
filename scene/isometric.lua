@@ -177,10 +177,11 @@ function sc:new()
         red = Color(.9, .2, .2),
         cyan = Color(.1, .7, .9),
     }
-    local area = { { -2,0, -2 }, { -2,0, 2 }, { 4,0, 2 }, { 20,0, -2 },}
+    local area = { { -2,0, -2 }, { -2,0, 2 }, { 6,0, 2 }, { 6,0, -2 },}
     local obstacle={ { -1,0, -1 },{1,0,-1},{1,0,1},{-1,0,1} }
     local points = Navigate.poly_diff(area,obstacle)
-    -- points=Navigate.poly_diff(points,obstacle)
+    local obstacle2={ { 2,0, -1 },{4,0,-1},{4,0,1},{2,0,1} }
+    points=Navigate.poly_diff(points,obstacle2)
 
     local polygon=Navigate.polygon{points=points}
     points = { { 0, 0, 0 }, { 0, 0, -3 }, { 3, 0, -4 }, { 3, 0, -10 }, { -1, 0, -10 }, { -1, 0, -8 }, { 1, 0, -8 },
@@ -189,7 +190,7 @@ function sc:new()
     -- polygon=Navigate.polygon{points=points}
     local tris=polygon:triangulate()
     local polygon_vertex={}
-    local colors={{1,0,0},{0,1,0},{0,0,1},{1,0,1},{0,1,1}}
+    local colors={{1,0,0},{0,1,0},{0,0,1},{1,0,1},{0,1,1},{.5,.2,.8}}
     for i,tri in ipairs(tris) do
         local r, g, b = unpack(colors[FP.cycle(i,1,#colors)])
         for k=1,3 do
@@ -208,6 +209,7 @@ function sc:new()
     self.convex_face={}
     local offset=1
     for i,cvex in ipairs(convex) do
+        cvex=Face{points=cvex,sorted=true}:convex_hull()
         local r, g, b = unpack(colors[FP.cycle(i,1,#colors)])
         for _,p in ipairs(cvex) do
             local x, y, z = p:unpack()

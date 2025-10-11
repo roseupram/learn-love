@@ -148,7 +148,7 @@ function Face:is_convex()
         local B=points[FP.cycle(i+1,1,#points)]
         local C=points[FP.cycle(i+2,1,#points)]
         local AB, BC = B - A, C - B
-        local is_convex_vertex = AB:cross(BC):dot(normal) > 0
+        local is_convex_vertex = AB:cross(BC):dot(normal) >= 0
         if not is_convex_vertex then
             return false
         end
@@ -183,25 +183,8 @@ function Face:convex_hull()
     ---https://swaminathanj.github.io/cg/ConvexHull.html
     local Normal=self.normal
 
-    local ccw_order={}
-    local set={}
-    local base_p=self.points[1]
-    for i,point in ipairs(self.points) do
-        if set[point:hash()]==nil then
-            table.insert(ccw_order,point)
-            set[point:hash()] = point
-        end
-        if point.y<base_p.y  then
-            base_p=point
-        end
-    end
-    table.sort(ccw_order,function (a, b)
-        local pa=a-base_p
-        local pb=b-base_p
-        return pa:cross(pb):dot(Normal)>0
-    end)
     local hull={}
-    for i,p in ipairs(ccw_order) do
+    for i,p in ipairs(self.points) do
         table.insert(hull,p)
         local is_last3_not_convex = true
         while #hull>=3 and is_last3_not_convex do

@@ -47,7 +47,7 @@ function Navigate.path(faces,from,to)
     local visited={}
     visited[start_i]=true
     local record={}
-    record[start_i]={cost=0}
+    record[start_i]={cost=0,g=0,parent=nil,point=from}
     while #q>0 do
         table.sort(q,function (a, b)
             return record[a].cost<record[b].cost
@@ -193,6 +193,7 @@ end
 ---@param polygons Point[][]
 ---@return neighbor_info[][]
 function Navigate.get_neighbor_info(polygons)
+    ---BUG shared_edge may not full edge
     local shared_edge={}
     local edge={}
     for i, polygon in ipairs(polygons) do
