@@ -34,10 +34,12 @@ function Navigate.path(faces,from,to)
         polygon_points[i]=f.points
         if f:has_point_in(from) then
             start_i=i
-        elseif f:has_point_in(to) then
+        end
+        if f:has_point_in(to) then
             end_i = i
         end
     end
+    -- print(start_i,end_i)
     if start_i<0 or end_i<0 then
         return false
     end
@@ -55,7 +57,7 @@ function Navigate.path(faces,from,to)
         local current=q[1]
         table.remove(q,1)
         for i, neighb in ipairs(neighbors[current]) do
-            local index,edge_a,edge_b=unpack(neighb)
+            local index=neighb.index
             if not visited[index] then
                 local polygon = polygon_points[index]
                 local g = from:distance(polygon[1])
@@ -97,7 +99,8 @@ function Navigate.path(faces,from,to)
         local current=path[i]
         local next=path[i-1]
         for _,neighb in ipairs(neighbors[current]) do
-            local index,A,B=table.unpack(neighb)
+            local index=neighb.index
+            local A,B=table.unpack(neighb.edge)
             if index==next then
                 table.insert(edge_pass,{A,B})
                 break
@@ -105,23 +108,8 @@ function Navigate.path(faces,from,to)
         end
     end
     ---Funnel Algorithm to optimize
-    local waypoint={}
-    local base=from
-    for i,e in ipairs(edge_pass) do
-        local A,B = table.unpack(e)
-        local SP=to-base
-        local AP=A-base
-        local BP=B-base
-        local c=SP:cross(AP):dot(SP:cross(BP))
-        if A:distance(to)+A:distance(from) < B:distance(to)+B:distance(from) then
-            base = A
-        else
-            base = B
-        end
-        table.insert(waypoint, base)
-    end
     table.insert(edge_pass,{to,to})
-    waypoint=Navigate.funnel_waypoint(edge_pass,from)
+    local waypoint=Navigate.funnel_waypoint(edge_pass,from)
     table.insert(waypoint, to)
     return waypoint
 end
@@ -161,9 +149,13 @@ function Navigate.funnel_waypoint(edge,start)
                 apex=left
                 i=left_i
             end
-            left,right=get_lr(apex,table.unpack(edge[i+1]))
+            local last_mid=(edge[i][1]+edge[i][2])/2
+            left,right=get_lr(last_mid,table.unpack(edge[FP.clamp(i+1,1,#edge)]))
+            print(apex,left,right)
+            i=i+1
+            right_i=i
+            left_i=i
             mid=(left+right)/2
-            
             table.insert(waypoint,apex)
         end
         i=FP.clamp(i+1,1,#edge)
@@ -187,46 +179,74 @@ function Navigate.polygon(ops)
     local normal=Point(0,1,0)
     return Face{points=points,normal=normal,sorted=true}
 end
+local function min_max(a,b)
+   if a>b then
+    return b,a
+   else 
+    return a,b
+   end 
+end
+---comment
+---@param line1 [Point,Point]
+---@param line2 [Point,Point]
+local function line_intersect(line1,line2)
+    local A,B=table.unpack(line1)
+    local C,D=table.unpack(line2)
+    local dir=(B-A):normal()
+    local ta=0
+    local tb=dir:dot(B-A)
+    local tc,td=dir:dot(C-A),dir:dot(D-A)
+    tc, td=min_max(tc,td)
+    ta,tb=min_max(ta,tb)
+    if tb<=tc or td<=ta then
+        return false
+    end
+    local ts={ta,tb,tc,td}
+    table.sort(ts)
+    local p1=A+dir*ts[2]
+    local p2=A+dir*ts[3]
+    return {p1,p2}
+end
+
+local function is_neighbor(poly1,poly2)
+    local normal=Point(0,1,0)
+    for i,p1 in ipairs(poly1) do
+        local p2 = poly1[FP.cycle(i + 1, 1, #poly1)]
+        local AB=p2-p1
+        for j,p3 in ipairs(poly2) do
+            local p4 = poly2[FP.cycle(j + 1, 1, #poly2)]
+            local CD=p4-p3
+            local AC,AD=p3-p1,p4-p1
+            local is_coline=AB:cross(AC):dot(normal)==0 and AB:cross(AD):dot(normal)==0
+            if is_coline then
+                local is_intersect = line_intersect({ p1, p2 }, { p3, p4 })
+                if is_intersect then
+                    return is_intersect
+                end
+            end
+        end
+    end
+    return false
+end
 
 ---@alias neighbor_info [number,Point,Point]
 ---info[polygon_index][i]=  [neighbor_index,edge_A,edge_B]
 ---@param polygons Point[][]
----@return neighbor_info[][]
+---@return {index:number,edge:[Point,Point]}[]
 function Navigate.get_neighbor_info(polygons)
     ---BUG shared_edge may not full edge
-    local shared_edge={}
-    local edge={}
-    for i, polygon in ipairs(polygons) do
-        for t=1,#polygon do
-            local next_t=FP.cycle(t+1,1,#polygon)
-            local A=polygon[t]
-            local B=polygon[next_t]
-            local a,b=A:hash(),B:hash()
-            local u,v
-            local edge_index={i,t,next_t}
-            if a>b then
-                u=b;v=a
-            else
-                u=a;v=b
-            end
-            edge[u]=edge[u] or {}
-            edge[u][v]=edge[u][v] or {}
-            table.insert(edge[u][v],i)
-            if #edge[u][v]>=2 then
-                table.insert(shared_edge,{u,v,edge_index})
+    local neighbors={}
+    for i,polygon in ipairs(polygons) do
+        local neighbor={}
+        for k,polygonB in ipairs(polygons) do
+            if i~=k then
+                local e = is_neighbor(polygon, polygonB)
+                if e then
+                    table.insert(neighbor,{index=k,edge=e})
+                end
             end
         end
-    end
-    local neighbors={}
-    for i,e in ipairs(shared_edge) do
-        local ta,tb=table.unpack(edge[e[1]][e[2]])
-        local edge_index=e[3]
-        neighbors[ta] = neighbors[ta] or {}
-        neighbors[tb] = neighbors[tb] or {}
-        local edge_a=polygons[edge_index[1]][edge_index[2]]
-        local edge_b=polygons[edge_index[1]][edge_index[3]]
-        table.insert(neighbors[ta],{tb,edge_a,edge_b})
-        table.insert(neighbors[tb],{ta,edge_a,edge_b})
+        neighbors[i]=neighbor
     end
     return neighbors
 end
@@ -280,7 +300,8 @@ function Navigate.convex_decompose(polygon)
         table.remove(q,1)
         local before_merge=#convex
         for _, neighb in ipairs(neighbors[ti]) do
-            local index, A, B = table.unpack(neighb)
+            local index=neighb.index
+            local A, B = table.unpack(neighb.edge)
             if not merged[index] then
                 local tb = tris[index]
                 local success = Navigate.merge_triangle(convex, tb, A, B)

@@ -90,7 +90,7 @@ function sc:update(dt)
     end
     local win_size = Vec(love.graphics.getDimensions())
     mouse_pos=mouse_pos/win_size
-    local move_range=.05
+    local move_range=-.05
     dz=-FP.double_step(mouse_pos.y,move_range,1-move_range)
     dx=FP.double_step(mouse_pos.x,move_range,1-move_range)
     local cam = self.camera
@@ -202,6 +202,8 @@ function sc:new()
     polygon_mesh:set_position(Point(0,0,-10))
     self:push(polygon_mesh,"polygon")
     -- polygon_mesh:color_tone{1,1,1,.5}
+    ---BUG can not merge all triangle
+
     local convex=Navigate.convex_decompose(polygon)
     local cni=Navigate.get_neighbor_info(convex)
     local convex_vertex={}

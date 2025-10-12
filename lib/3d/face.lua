@@ -125,7 +125,8 @@ function Face:triangulate()
             local B=point
             local C=points[FP.cycle(i+1,1,#points)]
             local tri_face=Face{points={A,B,C},sorted=true}
-            if tri_face:is_convex() and tri_face:no_point_in(points) then
+            local is_ear=tri_face:is_convex() and tri_face:no_point_in(points)
+            if  is_ear then
                 table.remove(points,i)
                 table.insert(tris,{A,B,C})
                 break
@@ -148,7 +149,13 @@ function Face:is_convex()
         local B=points[FP.cycle(i+1,1,#points)]
         local C=points[FP.cycle(i+2,1,#points)]
         local AB, BC = B - A, C - B
-        local is_convex_vertex = AB:cross(BC):dot(normal) >= 0
+        local cross_dot=AB:cross(BC):dot(normal)
+        local is_convex_vertex = false
+        if #points == 3 then
+            is_convex_vertex = cross_dot > 0
+        else
+            is_convex_vertex = cross_dot >= 0
+        end
         if not is_convex_vertex then
             return false
         end
@@ -179,6 +186,21 @@ function Face:no_point_in(points)
     end
     return true
 end
+local function remove_coline(points)
+    local normal=Point(0,1,0)
+    local to_remove={}
+    for i,B in ipairs(points) do
+        local A=points[FP.cycle(i-1,1,#points)]
+        local C=points[FP.cycle(i+1,1,#points)]
+        local is_coline=(B-A):cross(C-B):dot(normal)==0
+        if is_coline then
+            table.insert(to_remove, i)
+        end
+    end
+    for i=#to_remove,1,-1 do
+        table.remove(points,to_remove[i])
+    end
+end
 function Face:convex_hull()
     ---https://swaminathanj.github.io/cg/ConvexHull.html
     local Normal=self.normal
@@ -200,6 +222,7 @@ function Face:convex_hull()
             end
         end
     end
+    remove_coline(hull)
     return hull
 end
 return Face

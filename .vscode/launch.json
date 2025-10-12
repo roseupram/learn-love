@@ -27,6 +27,9 @@
             "ignorePatterns": [
                 "prototype%.lua",
                 "array%.lua",
+                "point%.lua",
+                "FP%.lua",
+                "vector%.lua",
             ]
         }
     ]
