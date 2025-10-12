@@ -16,29 +16,34 @@ local function read_uint16(bytes)
     return bytes[1]+bytes[2]*2^8
 end
 
-local BYTE_LEN={}
-BYTE_LEN[5126]=4
-BYTE_LEN[5123]=2
+local TYPE_MAP={}
+TYPE_MAP[5126]="<f"
+TYPE_MAP[5123]="<H"
+TYPE_MAP[5125]="<I"
+local lsf=love.filesystem
+local ld=love.data
 
+---comment
+---@param file_name any
+---@return {meshes:{index:table,material:table,POSITION:table,TEXCOORD_0:table,NORMAL:table}[][],json:table}
 function glb.read(file_name)
-    local glb_data={}
-    local f = assert(io.open(file_name,'rb'))
-    local magic = f:read(4)
-    local version = read_uint32(f)
-    local length = read_uint32(f)
-    print("model info: ",magic,version,length,f:seek())
+    local data ,size= assert(lsf.read('data',file_name))
+    local pos = 1
+    local magic,version,length,pos = ld.unpack("<c4II",data,pos)
+    -- print("model info: ",magic,version,length)
+    assert(size==length,"gld length error")
 
-    local data_length = read_uint32(f)
-    local data_type = f:read(4)
-    local json_content = f:read(data_length)
-    local json_data = json.read(json_content)
+    local data_length,data_type,pos = ld.unpack("<Ic4",data,pos)
+    assert(data_type=="JSON","json error")
+    local json_str,pos = ld.unpack("c"..data_length,data,pos)
+    local json_data = json.read(json_str)
     
-    print(data_type, data_length, json_content,"\n--")
+    -- print(data_type, data_length, json_str,"\n--")
 
-    data_length = read_uint32(f)
-    data_type = f:read(4)
-    local bin_content = f:read(data_length)
-    print(data_type, data_length)
+    data_length,data_type,pos = ld.unpack("<Ic4",data,pos)
+    -- print(data_type, data_length)
+    local bin_content,pos= ld.unpack("c"..data_length,data,pos)
+    local meshes={}
     local vertices = {}
     local indexs = {}
     local images = {}
@@ -52,56 +57,47 @@ function glb.read(file_name)
         table.insert(images,love.graphics.newImage(img_data))
     end
     local new_index_start=0
+    local offset,float_number,u16=1,0,0
     for mesh_id,mesh in ipairs(json_data.meshes) do
+        local mesh_t={}
+        meshes[mesh_id]=mesh_t
         for primitive_id,p in ipairs(mesh.primitives) do
+            local primitive={}
+            mesh_t[primitive_id]=primitive
             for attr_id,attribute in ipairs{"POSITION","TEXCOORD_0","NORMAL"} do
                 local accessor = json_data.accessors[p.attributes[attribute] + 1]
                 local bufferview = json_data.bufferViews[accessor.bufferView + 1]
-                local offset = bufferview.byteOffset
+                offset = bufferview.byteOffset+1
                 local data_size = accessor.type:match("%d+") or 1 -- component number
-                local byte_len = BYTE_LEN[accessor.componentType]
+                local fmt = TYPE_MAP[accessor.componentType]
+                primitive[attribute] = {}
                 for i = 1, accessor.count do
-                    if not vertices[i] then
-                        vertices[i] = {}
-                    end
+                    local attr={}
                     for d=1,data_size do
-                        local index=  i * data_size - data_size + d - 1
-                        local start = index * byte_len + 1 + offset
-                        local float_number = read_float({ bin_content:byte(start, start + byte_len) })
-                        table.insert(vertices[i], float_number)
+                        float_number ,offset= ld.unpack(fmt,bin_content,offset)
+                        table.insert(attr, float_number)
                     end
+                    primitive[attribute][i]=attr
                 end
             end
 
-            local material = json_data.materials[p.material + 1]
-            local color = material.pbrMetallicRoughness.baseColorFactor or { 1, 1, 1, 1 }
-            for i=new_index_start+1,#vertices do
-                for c =1,3 do
-                    table.insert(vertices[i],color[c])
-                end
-            end
+            primitive.material = json_data.materials[p.material + 1]
 
             local accessor = json_data.accessors[p.indices+1]
             local bufferview = json_data.bufferViews[accessor.bufferView + 1]
-            local offset = bufferview.byteOffset
+            offset = bufferview.byteOffset+1
             local data_size = accessor.type:match("%d+") or 1
-            local byte_len = BYTE_LEN[accessor.componentType]
+            local fmt = TYPE_MAP[accessor.componentType]
+            local index={}
             for i = 1, accessor.count*data_size do
-                local start = i * byte_len - byte_len + 1 + offset
-                local u16 = read_uint16({ bin_content:byte(start, start+byte_len) })
-                table.insert(indexs, u16 + 1 + new_index_start)
+                u16,offset= ld.unpack(fmt,bin_content,offset)
+                table.insert(index, u16 + 1 + new_index_start)
             end
-            new_index_start = #vertices
+            primitive.index=index
         end
     end
-    glb_data.vertices=vertices
-    glb_data.index = indexs
-    glb_data.vertex_format={
-        {"VertexPosition","float",3},
-        {"VertexTexCoord","float",2},
-        {"a_normal","float",3},
-        {"VertexColor","float",3},
-    }
+    local glb_data={}
+    glb_data.meshes=meshes
     glb_data.json=json_data
     glb_data.images=images
     return glb_data

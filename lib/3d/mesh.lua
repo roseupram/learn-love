@@ -1,12 +1,41 @@
 local protype=require('prototype')
+local Array=require('array')
+local Glb=require('glb')
 local Color=require('color')
 local Face=require('3d.face')
 local FP=require('FP')
 local AABB=require("3d.aabb")
+local Node=require("3d.node")
 -- local Color=require('color')
 local path=(...):gsub("[^.]+$","") -- remove last name
 ---@type Point
 local Point=require(path..'point')
+
+---@class Mesh_Group
+---@field children Mesh[]
+local Mesh_Group = Node { name = "Mesh_Group" }
+
+function Mesh_Group:new(ops)
+    self.children=ops.meshes
+    self.position=Point()
+end
+function Mesh_Group:draw()
+    for i,child in ipairs(self.children) do
+        child:draw()
+    end
+end
+function Mesh_Group:push(mesh)
+    table.insert(self.children,mesh)
+end
+function Mesh_Group:set_position(point)
+    self.position=point
+    for i,child in ipairs(self.children) do
+        child:set_position(point)
+    end
+end
+function Mesh_Group:get_position()
+    return self.position
+end
 ---@alias Mesh_ops { vmap:table,vertex:table,mode:string,
 ---texture:any, wireframe: boolean, instance: number,usage:string}
 
@@ -26,6 +55,29 @@ local vformat = {
     { "VertexColor",    "float", 3 },
     { "VertexTexCoord", "float", 2 }
 }
+---@param filename any
+---@return Node
+function mesh.glb(filename)
+    local glb_data=Glb.read(filename)
+    local meshes={}
+    for pi,primitive in ipairs(glb_data.meshes[1]) do
+        local vertex = {}
+        local color = primitive.material.pbrMetallicRoughness.baseColorFactor
+        for i, v_data in ipairs(primitive["POSITION"]) do
+            local v = {}
+            for _, n in ipairs(v_data) do
+                table.insert(v, n)
+            end
+            for c = 1, 3 do
+                table.insert(v, color[c])
+            end
+            table.insert(vertex, v)
+        end
+        local m= mesh { vertex = vertex, vmap = primitive.index, mode = "triangles" }
+        meshes[pi]=m
+    end
+    return Mesh_Group{meshes=meshes}
+end
 function mesh.cube(ops)
     local v={}
     local vmap={}

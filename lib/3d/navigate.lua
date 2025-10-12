@@ -151,7 +151,7 @@ function Navigate.funnel_waypoint(edge,start)
             end
             local last_mid=(edge[i][1]+edge[i][2])/2
             left,right=get_lr(last_mid,table.unpack(edge[FP.clamp(i+1,1,#edge)]))
-            print(apex,left,right)
+            -- print(apex,left,right)
             i=i+1
             right_i=i
             left_i=i

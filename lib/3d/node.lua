@@ -1,4 +1,5 @@
 local pttype=require('prototype')
+---@class Node:prototype
 local Node=pttype{name='Node'}
 local Array=require('array')
 function Node:new(ops)
@@ -32,7 +33,11 @@ function Node:after_draw()
 end
 function Node:draw()
     self.to_draw:each(function (child)
-        child:render()
+        if child.render then
+            child:render()
+        else
+            child:draw()
+        end
     end)
 end
 function Node:mousepressed(x,y,button,is_touch,times) end
