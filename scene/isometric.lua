@@ -14,6 +14,7 @@ local Node=require('3d.node')
 local Quat=require('3d.quat')
 local Face=require('3d.face')
 local Navigate=require('3d.navigate')
+local Mat=require("3d.mat")
 local Movable=require('scene.movable')
 
 
@@ -173,6 +174,9 @@ function sc:update(dt)
 end
 
 function sc:new()
+    local view=Mat.look_at(Point(0,10,10),Point(0,0,0))
+    print(view)
+    print(view*Point(0,10,0))
     local plt={
         red = Color(.9, .2, .2),
         cyan = Color(.1, .7, .9),
@@ -234,6 +238,7 @@ function sc:new()
     lg.setDepthMode('less',true)
     -- love.mouse.setRelativeMode(true)
     local w,h=lg.getDimensions()
+    self.shadowmap_canvas=lg.newCanvas(w,h,{format="depth16",readable=true})
     love.mouse.setPosition(w/2,h/2)
     if love.config.Release then
         love.mouse.setVisible(false)

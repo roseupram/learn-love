@@ -1,6 +1,5 @@
 attribute vec3 a_tl;
 attribute vec4 a_quat;
-attribute vec3 a_rot;
 attribute vec3 a_sc;
 
 mat4 quat_to_mat(vec4 quat){
@@ -52,6 +51,14 @@ mat4 rotate_mat(float x,float y,float z){
     return rotate;
 }
 
+mat4 translate_mat(vec3 tl){
+    return mat4(
+        1,0,0,0,
+        0,1,0,0,
+        0,0,1,0,
+        tl,1);
+}
+
 mat4 rotate_mat(vec3 rot){
     return rotate_mat(rot.x,rot.y,rot.z);
 }
@@ -66,48 +73,45 @@ mat4 scale_mat(float x,float y, float z){
 mat4 scale_mat(vec3 sc){
     return scale_mat(sc.x,sc.y,sc.z);
 }
+vec4 world_pos(vec4 v){
+    mat4 self_sc = scale_mat(length(a_sc)!=0?a_sc:vec3(1,1,1));
+    mat4 self_rot=quat_to_mat(a_quat);
+    mat4 model = self_sc*self_rot;
+    v=model*v; // model
+    v+=vec4(a_tl,0);
+    return v;
+}
+/*
+camera_param
+(
+x,y,z,
+x_rot,y_rot,radius
+near,far,wh_ration
+)
+*/
 vec4 isometric_project(mat3 camera_param, vec4 vertex_position){
     float near=camera_param[2].x;
     float far=camera_param[2].y;
     float wh_ratio=camera_param[2].z;
     // TODO camera view 
-    mat4 base_tl=mat4(
-        1,0,0,0,
-        0,1,0,0,
-        0,0,1,0,
-        camera_param[0],1);
+    mat4 base_tl=translate_mat(camera_param[0]);
     float radius = camera_param[1][2];
     float sc = abs(1.0 /radius);
-    mat4 scalate = mat4(
-        sc,0,0,0,
-        0,sc,0,0,
-        0,0,sc,0,
-        0,0,0,1
-    );
+    mat4 scalate =scale_mat(sc,sc,sc);
     float x_rot=-camera_param[1].x;
     float y_rot=camera_param[1].y;
-    float sx=sin(x_rot),cx=cos(x_rot),sy=sin(y_rot),cy=cos(y_rot);
-    // mat4 eye_tl=mat4(
-    //     1,0,0,0,
-    //     0,1,0,0,
-    //     0,0,1,0,
-    //     radius*cx*sy, radius*sx,radius*cx*cy,1);
     mat4 rotate =rotate_mat(0,y_rot,0)*rotate_mat(x_rot,0,0);
     mat4 tf2world = base_tl*rotate;
     mat4 tf2cam = inverse(tf2world);
     float tsc = fract(time)+.5;
     tsc = 1;
-    mat4 self_sc = scale_mat(length(a_sc)!=0?a_sc:vec3(1,1,1));
-    //mat4 self_rot=rotate_mat(-a_rot);
-    mat4 self_rot=quat_to_mat(a_quat);
-    vertex_position=self_sc*self_rot*vertex_position;
-    vertex_position+=vec4(a_tl,0);
+    vertex_position=world_pos(vertex_position);
+
     // vec4 pos =rotate*scalate*vertex_position;
-    vec4 pos =scalate*(vertex_position);
+    vec4 pos =scalate*(vertex_position); //view
     pos=tf2cam*pos;
     pos.z*=-1; //right hand to left hand and scale back
     pos.z=(pos.z/sc-near)/(far-near);
-    // z_value=pos.z;
     pos.y*=wh_ratio;
     return pos;
 }

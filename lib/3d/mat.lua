@@ -10,6 +10,18 @@ function mat.identity()
         0, 0, 1, 0,
         0, 0, 0, 1}
 end
+function mat.look_at(from,to,up)
+    up=up or Point(0,1,0)
+    local f=(to-from):normal()
+    local r=f:cross(up):normal()
+    local u=r:cross(f):normal()
+    return mat{
+        r.x,r.y,r.y,0,
+        u.x,u.y,u.y,0,
+        -f.x,-f.y,-f.y,0,
+        -r:dot(from),-u:dot(from),f:dot(from),1
+    }
+end
 function mat.rotate_mat(x,y,z)
     local sin,cos=math.sin,math.cos
     local sx,cx = sin(x),cos(x)
@@ -38,8 +50,8 @@ function mat:__mul(m)
     elseif m:is(Point) then
         res=Point()
         for i=1,3 do
-            local row=Point(self[i][1],self[i][2],self[i][3])
-            res[res.keys[i]]=m:dot(row)+self[i][4]
+            local column=Point(self[i][1],self[i][2],self[i][3])
+            res[res.keys[i]]=m:dot(column)+self[4][i]
         end
     else
          error("wrong type of param")

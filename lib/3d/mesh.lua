@@ -56,7 +56,7 @@ local vformat = {
     { "VertexTexCoord", "float", 2 }
 }
 ---@param filename any
----@return Node
+---@return Mesh_Group
 function mesh.glb(filename)
     local glb_data=Glb.read(filename)
     local meshes={}
@@ -73,7 +73,7 @@ function mesh.glb(filename)
             end
             table.insert(vertex, v)
         end
-        local m= mesh { vertex = vertex, vmap = primitive.index, mode = "triangles" }
+        local m= mesh { vertex = vertex, vmap = primitive.index,normal=primitive.NORMAL, mode = "triangles" }
         meshes[pi]=m
     end
     return Mesh_Group{meshes=meshes}
@@ -226,6 +226,10 @@ function mesh:new(ops)
         end
         self[key]=love.graphics.newMesh({{attribute,"float",#data[1]}},data,nil)
         self._mesh:attachAttribute(attribute, self[key], "perinstance")
+    end
+    if ops.normal then
+        local n_mesh=love.graphics.newMesh({{"a_normal","float",3}},ops.normal)
+        self._mesh:attachAttribute("a_normal", n_mesh, "pervertex")
     end
     if ops.tl then
         local t={}
