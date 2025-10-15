@@ -1,6 +1,5 @@
 #pragma language glsl3
 uniform float time=0;
-uniform mat3 camera_param; 
 
 /*
 (
@@ -13,17 +12,9 @@ near,far,wh_ration
 // include attribute
 include(`lib/tf.glsl')
 
-attribute vec4 a_color;
-attribute vec3 a_normal;
-varying vec4 v_color;
-varying vec3 v_normal;
-varying vec3 v_position;
 
 vec4 position(mat4 _tf,vec4 vertex_position){
-    v_color=a_color;
-    v_normal=a_normal;
-    v_position=vertex_position.xyz;
-    return isometric_project(camera_param,vertex_position);
+    return isometric_project(vertex_position);
 }
 #endif
 //end of vertex code

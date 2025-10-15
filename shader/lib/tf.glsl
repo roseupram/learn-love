@@ -1,6 +1,15 @@
+uniform mat4 VIEW;
+uniform mat4 PROJECT;
+
 attribute vec3 a_tl;
 attribute vec4 a_quat;
 attribute vec3 a_sc;
+attribute vec4 a_color;
+attribute vec3 a_normal;
+
+varying vec4 v_color;
+varying vec3 v_normal;
+varying vec3 v_position;
 
 mat4 quat_to_mat(vec4 quat){
     float x=quat.x,y=quat.y,z=quat.z,w=quat.w;
@@ -89,29 +98,15 @@ x_rot,y_rot,radius
 near,far,wh_ration
 )
 */
-vec4 isometric_project(mat3 camera_param, vec4 vertex_position){
-    float near=camera_param[2].x;
-    float far=camera_param[2].y;
-    float wh_ratio=camera_param[2].z;
-    // TODO camera view 
-    mat4 base_tl=translate_mat(camera_param[0]);
-    float radius = camera_param[1][2];
-    float sc = abs(1.0 /radius);
-    mat4 scalate =scale_mat(sc,sc,sc);
-    float x_rot=-camera_param[1].x;
-    float y_rot=camera_param[1].y;
-    mat4 rotate =rotate_mat(0,y_rot,0)*rotate_mat(x_rot,0,0);
-    mat4 tf2world = base_tl*rotate;
-    mat4 tf2cam = inverse(tf2world);
+vec4 isometric_project(vec4 vertex_position){
+    v_color=a_color;
+    v_normal=a_normal;
+    vertex_position=world_pos(vertex_position);
+    v_position=vertex_position.xyz; //world pos
+
     float tsc = fract(time)+.5;
     tsc = 1;
-    vertex_position=world_pos(vertex_position);
 
-    // vec4 pos =rotate*scalate*vertex_position;
-    vec4 pos =scalate*(vertex_position); //view
-    pos=tf2cam*pos;
-    pos.z*=-1; //right hand to left hand and scale back
-    pos.z=(pos.z/sc-near)/(far-near);
-    pos.y*=wh_ratio;
+    vec4 pos=PROJECT*VIEW*vertex_position;
     return pos;
 }

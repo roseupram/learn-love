@@ -10,16 +10,17 @@ function mat.identity()
         0, 0, 1, 0,
         0, 0, 0, 1}
 end
+---world to view matrix
 function mat.look_at(from,to,up)
     up=up or Point(0,1,0)
-    local f=(to-from):normal()
-    local r=f:cross(up):normal()
-    local u=r:cross(f):normal()
+    local f=(from-to):normal()
+    local r=up:cross(f):normal()
+    local u=f:cross(r):normal()
     return mat{
-        r.x,r.y,r.y,0,
-        u.x,u.y,u.y,0,
-        -f.x,-f.y,-f.y,0,
-        -r:dot(from),-u:dot(from),f:dot(from),1
+        r.x,u.x,f.x,0,
+        r.y,u.y,f.y,0,
+        r.z,u.z,f.z,0,
+        -r:dot(from),-u:dot(from),-f:dot(from),1
     }
 end
 function mat.rotate_mat(x,y,z)
@@ -34,23 +35,37 @@ function mat.rotate_mat(x,y,z)
         0,0,0,1,
     }
 end
----comment
----@param m Mat4 | Point
+function mat:flat()
+    local t={}
+    self:each(function (v)
+        table.insert(t,v)
+    end)
+    return t
+end
+function mat:T()
+    local m = mat()
+    self:each(function(v, r, c)
+        m[c][r] = v
+    end)
+    return  m
+end
+---@param m Mat4 | Point|any
 function mat:__mul(m)
     assert(m.is,"wrong type of param")
     local res
     if m:is(mat) then
         res=self:map(function (v,r,c,mat_ref)
+            ---A_T*B_T=(B*A)_T
             local n=0
             for i=1,4 do
-                n=n+mat_ref[r][i]*m[i][c]-- left_row * right_column
+                n=n+mat_ref[c][i]*m[i][r]-- left_row[c] * right_column[r]
             end
             return n
         end)
     elseif m:is(Point) then
         res=Point()
         for i=1,3 do
-            local column=Point(self[i][1],self[i][2],self[i][3])
+            local column=Point(self[1][i],self[2][i],self[3][i])
             res[res.keys[i]]=m:dot(column)+self[4][i]
         end
     else

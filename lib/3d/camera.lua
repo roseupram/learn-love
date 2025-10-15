@@ -34,15 +34,24 @@ end
 function camera:left_x()
     return Point(1,0,0):rotate(0,math.rad(self.y_rot),0)
 end
----{ {x,y,z}, {x_rot,y_rot,radius},{near,far,wh_ratio} }
----@return table
-function camera:param_mat()
-    -- why -y_rot, I don't know
-    return {
-        {self.tl:unpack()},
-        {math.rad(self.x_rot),math.rad(-self.y_rot),self.radius},
-        {self.near,self.far,self.wh_ratio}
+function camera:project_mat()
+    local scale=1.0/self.radius
+    local fn=self.far-self.near
+    local mat=Mat{
+        scale, 0, 0, 0,
+        0, scale * self.wh_ratio, 0, 0,
+        0, 0, scale / -fn, -self.near/fn,
+        0, 0, 0, 1
     }
+    return mat
+end
+---world to view
+---@return Mat4
+function camera:view_mat()
+    local view_to_world=self:rotate_mat()
+    local eye=view_to_world*Point(0,0,1)
+    local mat=Mat.look_at(eye+self.tl,self.tl)
+    return mat
 end
 function camera:rotate_mat()
     local rx,ry = math.rad(self.x_rot),math.rad(self.y_rot)
@@ -60,8 +69,7 @@ function camera:ray(x,y)
     x=2*x/w-1; y=1-2*y/h;
     local RyRx=self:rotate_mat()
     local dir=RyRx*Point(0,0,-1)
-    local point_world=RyRx*Point(x,y/self.wh_ratio,2)+self.tl
-    point_world:mul(self.radius)
+    local point_world=RyRx*Point(x,y/self.wh_ratio,2)*self.radius+self.tl
     return point_world,dir
 end
 return camera

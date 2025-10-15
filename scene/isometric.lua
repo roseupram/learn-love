@@ -53,7 +53,8 @@ function sc:draw()
     for i,child in ipairs(to_draw) do
         -- lg.setWireframe(true)
         if child.shader then
-            child.shader:send('camera_param', 'column', cam:param_mat())
+            child.shader:send('VIEW', 'column', cam:view_mat():flat())
+            child.shader:send('PROJECT', 'column', cam:project_mat():flat())
         end
         if child.render then
             child:render()
@@ -98,14 +99,16 @@ function sc:update(dt)
     local front = cam:front_z()*cam.wh_ratio -- in glsl, y*=wh_ratio
     local left=cam:left_x()
     local dv=front*dz+left*dx
-    cam:move(dv*dt)
+    cam:move(dv*dt*cam.radius)
     my_shader:send('time',Time)
-    my_shader:send('camera_param','column',cam:param_mat())
+    my_shader:send('VIEW','column',cam:view_mat():flat())
+    my_shader:send('PROJECT','column',cam:project_mat():flat())
     if self.clicked then
         local times = FP.clamp(self.clicked,1,2)
         self.velocity_P=(times-1)*5+3
         self.clicked=false
         local p, d = cam:ray(love.mouse.getPosition())
+        print(p)
         local A = Point(0, .1, 0) -- (A,n) is a plane
         local n = Point(0, 1, 0)
         local t = (p - A):dot(n) / (d:dot(n))
@@ -176,7 +179,7 @@ end
 function sc:new()
     local view=Mat.look_at(Point(0,10,10),Point(0,0,0))
     print(view)
-    print(view*Point(0,10,0))
+    print(view*Point(0,0,0),"\n-")
     local plt={
         red = Color(.9, .2, .2),
         cyan = Color(.1, .7, .9),

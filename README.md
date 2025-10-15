@@ -21,7 +21,7 @@ left is x+, up is y+, inward is z+, so that's a **left-hand coordinate**,
  but in glTF, models are placed in right-hand coordinate, 
 - int and float: `1/100=0; 1.0/100=0.01`
 - RxRy ~= RyRx, inverse(RxRy)=Ry' Rx', change some view
-- mat in glsl is column-major
+- mat in glsl is column-major, mat[0] is 1st column, m[3] is 4th column
 - LuaJIT(5.1)
 - lÖve 11.5
 > Conditionals (such as the ones in control structures) consider `false` and `nil` as false and `anything else` as true. Beware that, unlike some other scripting languages, Lua considers both zero and the empty string as true in conditional tests.

@@ -4,7 +4,7 @@ uniform mat3 camera_param;
 uniform vec3 light_position=vec3(1,1,1)*10;
 varying vec4 v_color;
 varying vec3 v_normal;
-varying vec3 v_position;
+varying vec3 v_position; // world pos
 vec4 effect(vec4 base_color, Image tex, vec2 tex_coord,vec2 screen_coord){
     vec4 tex_color= Texel(tex,tex_coord);
     // vec4 color_tone=length(v_color.rgb)==0? vec4(1,1,1,1):v_color;
