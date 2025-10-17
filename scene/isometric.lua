@@ -108,7 +108,6 @@ function sc:update(dt)
         self.velocity_P=(times-1)*5+3
         self.clicked=false
         local p, d = cam:ray(love.mouse.getPosition())
-        print(p)
         local A = Point(0, .1, 0) -- (A,n) is a plane
         local n = Point(0, 1, 0)
         local t = (p - A):dot(n) / (d:dot(n))
@@ -177,9 +176,6 @@ function sc:update(dt)
 end
 
 function sc:new()
-    local view=Mat.look_at(Point(0,10,10),Point(0,0,0))
-    print(view)
-    print(view*Point(0,0,0),"\n-")
     local plt={
         red = Color(.9, .2, .2),
         cyan = Color(.1, .7, .9),
@@ -340,6 +336,9 @@ function sc:new()
     local platform = Mesh.glb("model/platform.glb")
     platform:set_position(Point(8,0,0))
     self:push(platform,"platform")
+    local house=Mesh.glb("model/house.glb")
+    house:set_position(Point(-4,0,-4))
+    self:push(house,"house")
 end
 function sc:mousepressed(x,y,button,is_touch,times)
     if button==1 then

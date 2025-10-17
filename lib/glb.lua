@@ -80,8 +80,9 @@ function glb.read(file_name)
                     primitive[attribute][i]=attr
                 end
             end
-
             primitive.material = json_data.materials[p.material + 1]
+            primitive.max=json_data.accessors[p.attributes.POSITION+1].max
+            primitive.min=json_data.accessors[p.attributes.POSITION+1].min
 
             local accessor = json_data.accessors[p.indices+1]
             local bufferview = json_data.bufferViews[accessor.bufferView + 1]

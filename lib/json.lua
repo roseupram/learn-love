@@ -42,9 +42,8 @@ function Parser:get_value()
             return self:get_object()
         elseif char == '[' then
             return self:get_array()
-        elseif char:find("[-%d]") == 1 then --number
-            value =  self:match('[-]?%d+[.]?%d*')
-
+        elseif char:find("[-%d]") == 1 then --number -5.1e-8
+            value =  self:match('[-]?%d+[.]?[%de-]*')
             offset = string.len(value)
             self:move_by(offset)
             return value+0
