@@ -62,7 +62,10 @@ function mesh.glb(filename)
     local meshes={}
     for pi,primitive in ipairs(glb_data.meshes[1]) do
         local vertex = {}
-        local color = primitive.material.pbrMetallicRoughness.baseColorFactor
+        local color ={1,1,1}
+        if primitive.material then
+            color = primitive.material.pbrMetallicRoughness.baseColorFactor
+        end
         for i, v_data in ipairs(primitive["POSITION"]) do
             local v = {}
             for _, n in ipairs(v_data) do

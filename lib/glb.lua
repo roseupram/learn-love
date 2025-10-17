@@ -80,7 +80,9 @@ function glb.read(file_name)
                     primitive[attribute][i]=attr
                 end
             end
-            primitive.material = json_data.materials[p.material + 1]
+            if p.material then
+                primitive.material = json_data.materials[p.material + 1]
+            end
             primitive.max=json_data.accessors[p.attributes.POSITION+1].max
             primitive.min=json_data.accessors[p.attributes.POSITION+1].min
 
