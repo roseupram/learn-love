@@ -16,6 +16,7 @@ local Face=require('3d.face')
 local Navigate=require('3d.navigate')
 local Mat=require("3d.mat")
 local Movable=require('scene.movable')
+local PQ=require('data.pqueue')
 
 
 local my_shader
@@ -105,7 +106,7 @@ function sc:update(dt)
     my_shader:send('PROJECT','column',cam:project_mat():flat())
     if self.clicked then
         local times = FP.clamp(self.clicked,1,2)
-        self.velocity_P=(times-1)*5+3
+        self.velocity_P=times==1 and 3 or 8
         self.clicked=false
         local p, d = cam:ray(love.mouse.getPosition())
         local A = Point(0, .1, 0) -- (A,n) is a plane
@@ -114,42 +115,6 @@ function sc:update(dt)
         local gp = p + d * -t
         self.circle:set_position(gp)
         self.target_pos=gp
-
-        local goal
-        for i,face in ipairs(self.convex_face) do
-            local t=face:test_ray(p,d)
-            if t then
-                goal=p+d*t
-            end
-        end
-        if goal then
-            local waypoints=Navigate.path(self.convex_face, self.player:get_position(), goal)
-            if waypoints then
-                self.waypoints=waypoints
-                self.target_pos=waypoints[1]
-            end
-        end
-        -- local ground = self:get('platform')
-        -- local aabb = ground:get_aabb() + ground:get_position()
-        -- local point, face_n = aabb:test_ray(p, d)
-        -- if point then
-        --     point=nil
-        --     local gpos=ground:get_position()
-        --     local faces = ground:get_faces()
-        --     for i,face in ipairs(faces) do
-        --         face=face+gpos
-        --         local t_face = face:test_ray(p,d)
-        --         if t_face then
-        --             point=p+d*t_face
-        --             face_n=face.normal
-        --             break
-        --         end
-        --     end
-        --     if point then
-        --         self.target_pos = point
-        --         self.circle:set_position(point + face_n * .1)
-        --     end
-        -- end
     end
 
     local player_pos=self.player:get_position()
@@ -180,56 +145,10 @@ function sc:new()
         red = Color(.9, .2, .2),
         cyan = Color(.1, .7, .9),
     }
-    local area = { { -2,0, -2 }, { -2,0, 2 }, { 6,0, 2 }, { 6,0, -2 },}
-    local obstacle={ { -1,0, -1 },{1,0,-1},{1,0,1},{-1,0,1} }
-    local points = Navigate.poly_diff(area,obstacle)
-    local obstacle2={ { 2,0, -1 },{4,0,-1},{4,0,1},{2,0,1} }
-    points=Navigate.poly_diff(points,obstacle2)
-
-    local polygon=Navigate.polygon{points=points}
-    local tris=polygon:triangulate()
-    local polygon_vertex={}
-    local colors={{1,0,0},{0,1,0},{0,0,1},{1,0,1},{0,1,1},{.5,.2,.8}}
-    for i,tri in ipairs(tris) do
-        local r, g, b = unpack(colors[FP.cycle(i,1,#colors)])
-        for k=1,3 do
-            local x,y,z=tri[k]:unpack()
-            table.insert(polygon_vertex,{x,y,z,r,g,b,0,0})
-        end
-    end
-    local polygon_mesh=Mesh{vertex=polygon_vertex,mode="triangles"}
-    polygon_mesh:set_position(Point(0,0,-10))
-    self:push(polygon_mesh,"polygon")
-    -- polygon_mesh:color_tone{1,1,1,.5}
-    ---BUG can not merge all triangle
-
-    local convex=Navigate.convex_decompose(polygon)
-    local cni=Navigate.get_neighbor_info(convex)
-    local convex_vertex={}
-    local convex_map={}
-    self.convex_face={}
-    local offset=1
-    for i,cvex in ipairs(convex) do
-        cvex=Face{points=cvex,sorted=true}:convex_hull()
-        local r, g, b = unpack(colors[FP.cycle(i,1,#colors)])
-        for _,p in ipairs(cvex) do
-            local x, y, z = p:unpack()
-            table.insert(convex_vertex, { x, y, z, r, g, b, 0, 0 })
-        end
-        for k=offset,offset+#cvex-3 do
-            table.insert(convex_map,offset)
-            table.insert(convex_map,k+1)
-            table.insert(convex_map,k+2)
-        end
-        table.insert(self.convex_face,Face{points=cvex,sorted=true})
-        offset=offset+#cvex
-    end
-    local convex_mesh=Mesh{vertex=convex_vertex,vmap=convex_map,mode="triangles"}
-    self:push(convex_mesh,"convex")
 
     local beat = love.audio.newSource('audio/beat.ogg','static')
     beat:setLooping(true)
-    beat:setVolume(.2)
+    beat:setVolume(.1)
     beat:play()
     self.Time=0
     self.rotate_pivot=-1
@@ -248,38 +167,7 @@ function sc:new()
     self.target_pos=Point(1,0,1)
     self.waypoints={}
     self.velocity_P=1
-    local vformat={
-        {"VertexPosition","float",3},
-        {"VertexColor","float",3},
-        {"VertexTexCoord","float",2}
-    }
-    local vertex={
-        { -1, 1,  1,  1, 0, 0 },
-        { 1,  1,  1,  1, 0, 0 },
-        { 1,  -1, 1,  1, 0, 0 },
-        { -1, -1, 1,  1, 0, 0 },
-        {-1,1,1,0,1,0},
-        {1,1,1,0,1,0},
-        {1,1,-1,0,1,0},
-        {-1,1,-1,0,1,0},
-        { 1,  1,  1,  0, 0, 1 },
-        { 1,  -1, 1,  0, 0, 1 },
-        { 1,  -1, -1, 0, 0, 1 },
-        { 1,  1,  -1, 0, 0, 1 },
 
-        { -1, 1,  -1, 1, 1, 0 },
-        { 1,  1,  -1, 1, 1, 0 },
-        { 1,  -1, -1, 1, 1, 0 },
-        { -1, -1, -1, 1, 1, 0 },
-    }
-    local vmap={1,3,2,1,4,3,8,5,6,8,6,7,9,10,11,9,11,12,13,14,15,13,15,16}
-    local tfs = {
-        { { 0, 0, 0 }, { -5, 0, 4 }, { 2, 0, -2 } },
-    }
-    local cube = Mesh { vmap = vmap, vertex = vertex, mode = "triangles",
-        instance = 3, tl = tfs[1] ,
-    }
-    -- self:push(cube,"cubes")
     local enemy=Movable{image=lg.newImage("images/enemy.png")}
     enemy:set_position(Point(-2,0,-4))
     self:push(enemy,'enemy')
@@ -294,51 +182,48 @@ function sc:new()
     self.circle=Mesh.ring()
     self.circle:color_tone(plt.cyan:clone()-Color(0,0,0,.3))
     self:push(self.circle,"circle")
-    local line= Mesh.line{
-        points = {
-            -1, 0, 0,
-            0, 2, 0,
-            1, 0, 0,
-            -.7, 1, 0,
-            .7, 1, 0,
-        },
-        normal=Point(0,0,1)
-    }
-    line:set_position(Point(-2,-1,4))
-    line:set_scale(Point(.5,.5,.5))
-    line:color_tone(Color(.9,.5,.9))
-    self:push(line,"line")
-    local arrow= Mesh.line{
-        points = {
-            0,0,0,
-            3,0,0,
-            2,0,-1,
-            2,0,1,
-            3,0,0,
-            2,0,-1,
-        },
-    }
-    arrow:set_position(Point(4,-1,4))
-    self:push(arrow,"arrow")
-    local wall = Mesh{
-        vertex={
-            {-2,-1,0,1,1,1,0,0},
-            {2,-1,0,1,1,1,0,0},
-            {2,1,0,1,1,1,0,0},
-            {-2,1,0,1,1,1,0,0},
-        },
-        anchor=Point(0,-1,0)
-    }
-    wall:set_position(Point(1,0,3))
-    wall:color_tone(Color.hex('#7a573d'))
-    self:push(wall,"wall")
 
     local platform = Mesh.glb("model/platform.glb")
-    platform:set_position(Point(8,0,0))
+    platform:set_position(Point(6,0,0))
     self:push(platform,"platform")
+    local tris=platform:get_triangles()
+    local walkable={}
+    local cos_thre =math.cos(math.rad(45))
+    for t,tri in ipairs(tris) do
+        local A=Point(tri[1])
+        local B=Point(tri[2])
+        local C=Point(tri[3])
+        local n=(B-A):cross(C-B):normal()
+        if n:dot(Point(0,1,0))> cos_thre then
+            table.insert(walkable,{A,B,C})
+        end
+    end
+
     local house=Mesh.glb("model/test.glb")
     house:set_position(Point(-4,0,-4))
     self:push(house,"house")
+    local ground_size=10
+    local points={{1,0,1},{1,0,-1},{-1,0,-1},{-1,0,1}}
+    --- points=diff(points,aabb(platform))
+    --- union(points,walkable)
+    for i,p in ipairs(points) do
+        for t,v in ipairs(p) do
+            p[t]=v*ground_size
+        end
+    end
+    local ground=Mesh.polygon{points=points}
+    ground:color_tone{.6,.6,.9}
+    self:push(ground,"ground")
+    local pq=PQ{compare=FP.greater}
+    pq:push(10)
+    pq:push(4)
+    pq:push(12)
+    pq:push(2)
+    pq:push(100)
+    pq:push(16)
+    print("pop: ",pq:pop())
+    print("top: ",pq:top())
+    print("len: ",pq:len())
 end
 function sc:mousepressed(x,y,button,is_touch,times)
     if button==1 then

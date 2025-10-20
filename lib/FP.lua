@@ -1,4 +1,10 @@
 local FP={}
+function FP.greater(a,b)
+    return a>b
+end
+function FP.less(a,b)
+   return a<b 
+end
 function FP.add(x,y)
     return x+y
 end

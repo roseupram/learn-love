@@ -9,6 +9,7 @@ function Node:new(ops)
 end
 function Node:push(child,name)
     if name then
+        assert(self.children[name] == nil, string.format("%s has been used",name))
         self.children[name]=child
     else
         self.children:push(child)

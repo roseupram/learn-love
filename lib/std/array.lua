@@ -20,7 +20,7 @@ function Array:new(...)
     for i,v in ipairs(args) do
         local typ=type(v)
         if typ=="table" and v.name==nil then
-            self:push(Array(unp(v)))
+            self:push(Array(table.unpack(v)))
         else
             self:push(v)
         end

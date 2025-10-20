@@ -36,6 +36,15 @@ end
 function Mesh_Group:get_position()
     return self.position
 end
+function Mesh_Group:get_triangles()
+    local tris={}
+    for i, child in ipairs(self.children) do
+        for t,tri in ipairs(child:get_triangles()) do
+            table.insert(tris,tri)
+        end
+    end
+    return tris
+end
 ---@alias Mesh_ops { vmap:table,vertex:table,mode:string,
 ---texture:any, wireframe: boolean, instance: number,usage:string}
 
@@ -60,24 +69,26 @@ local vformat = {
 function mesh.glb(filename)
     local glb_data=Glb.read(filename)
     local meshes={}
-    for pi,primitive in ipairs(glb_data.meshes[1]) do
-        local vertex = {}
-        local color ={1,1,1}
-        if primitive.material then
-            color = primitive.material.pbrMetallicRoughness.baseColorFactor
-        end
-        for i, v_data in ipairs(primitive["POSITION"]) do
-            local v = {}
-            for _, n in ipairs(v_data) do
-                table.insert(v, n)
+    for ni,node in ipairs(glb_data.json.nodes) do
+        for pi, primitive in ipairs(glb_data.meshes[node.mesh+1]) do
+            local vertex = {}
+            local color = { 1, 1, 1 }
+            if primitive.material then
+                color = primitive.material.pbrMetallicRoughness.baseColorFactor
             end
-            for c = 1, 3 do
-                table.insert(v, color[c])
+            for i, v_data in ipairs(primitive["POSITION"]) do
+                local v = {}
+                for _, n in ipairs(v_data) do
+                    table.insert(v, n)
+                end
+                for c = 1, 3 do
+                    table.insert(v, color[c])
+                end
+                table.insert(vertex, v)
             end
-            table.insert(vertex, v)
+            local m = mesh { vertex = vertex, vmap = primitive.index, normal = primitive.NORMAL, mode = "triangles" }
+            table.insert(meshes,m)
         end
-        local m= mesh { vertex = vertex, vmap = primitive.index,normal=primitive.NORMAL, mode = "triangles" }
-        meshes[pi]=m
     end
     return Mesh_Group{meshes=meshes}
 end
@@ -198,6 +209,24 @@ function mesh.line(ops)
     end
     -- return mesh{vertex=v,mode='triangles'}
     return mesh{vertex=v,mode='strip'}
+end
+---for convex
+function mesh.polygon(ops)
+    local vertex={}
+    for i,p in ipairs(ops.points) do
+        local v={0,0,0,1,1,1,0,0}
+        for t,value in ipairs(p) do
+            v[t]=value
+        end
+        table.insert(vertex,v)
+    end
+    local map={}
+    for i=1,#vertex-2 do
+        table.insert(map,1)
+        table.insert(map,i+1)
+        table.insert(map,i+2)
+    end
+    return mesh{vertex=vertex,vmap=map,mode="triangles"}
 end
 
 function mesh:new(ops)
