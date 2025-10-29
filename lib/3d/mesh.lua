@@ -16,7 +16,7 @@ local Point=require(path..'point')
 local Mesh_Group = Node { name = "Mesh_Group" }
 
 function Mesh_Group:new(ops)
-    self.children=ops.meshes
+    self.children=ops.meshes or {}
     self.position=Point()
 end
 function Mesh_Group:draw()
@@ -45,6 +45,21 @@ function Mesh_Group:get_triangles()
     end
     return tris
 end
+function Mesh_Group:get_AABB(with_tl)
+    with_tl=with_tl or true
+    local aabb=self.children[1]:get_AABB()
+    for i=2,#self.children do
+        local child=self.children[i]
+        aabb=aabb:merge(child:get_AABB())
+    end
+    if with_tl then
+        aabb:add(self:get_position())
+    end
+    return aabb
+end
+
+
+
 ---@alias Mesh_ops { vmap:table,vertex:table,mode:string,
 ---texture:any, wireframe: boolean, instance: number,usage:string}
 
@@ -56,7 +71,7 @@ end
 ---@field anchor Point offset of anchor
 ---@overload fun(ops:Mesh_ops):Mesh
 ---@see Mesh.new
-local mesh = protype{
+local Mesh = protype{
     name = "Mesh",
 }
 local vformat = {
@@ -66,7 +81,7 @@ local vformat = {
 }
 ---@param filename any
 ---@return Mesh_Group
-function mesh.glb(filename)
+function Mesh.glb(filename)
     local glb_data=Glb.read(filename)
     local meshes={}
     for ni,node in ipairs(glb_data.json.nodes) do
@@ -86,13 +101,17 @@ function mesh.glb(filename)
                 end
                 table.insert(vertex, v)
             end
-            local m = mesh { vertex = vertex, vmap = primitive.index, normal = primitive.NORMAL, mode = "triangles" }
+            local m = Mesh { vertex = vertex, vmap = primitive.index, normal = primitive.NORMAL, mode = "triangles" }
+            m:set_AABB(AABB{max=Point(primitive.max),min=Point(primitive.min)})
             table.insert(meshes,m)
         end
     end
     return Mesh_Group{meshes=meshes}
 end
-function mesh.cube(ops)
+function Mesh.group(meshes)
+    return Mesh_Group{meshes=meshes}
+end
+function Mesh.cube(ops)
     local v={}
     local vmap={}
     local n3={
@@ -124,9 +143,15 @@ function mesh.cube(ops)
             table.insert(vmap,vmi+(i-1)*vmap_step)
         end
     end
-    return mesh{vertex=v,mode='triangles',vmap=vmap,wireframe=ops.wireframe}
+    local m= Mesh{vertex=v,mode='triangles',vmap=vmap,wireframe=ops.wireframe}
+    if ops.AABB then
+        local center = ops.AABB:center()
+        m:set_position(center)
+        m:set_scale(ops.AABB.max-center)
+    end
+    return m
 end
-function mesh.circle()
+function Mesh.circle()
     local v={{0,0,0,1,1,1,0,0}}
     local tau=math.pi*2
     local segment=24
@@ -137,9 +162,9 @@ function mesh.circle()
         local y=0
         table.insert(v,{x,y,z,1,1,1,0,0})
     end
-    return mesh{vertex=v,mode='fan'}
+    return Mesh{vertex=v,mode='fan'}
 end
-function mesh.ring()
+function Mesh.ring()
     local v={}
     local tau=math.pi*2
     local segment=24
@@ -151,9 +176,9 @@ function mesh.ring()
         table.insert(v,{x,y,z,1,1,1,0,0})
         table.insert(v,{.5*x,y,.5*z,1,1,1,0,0})
     end
-    return mesh{vertex=v,mode='strip'}
+    return Mesh{vertex=v,mode='strip'}
 end
-function mesh.line(ops)
+function Mesh.line(ops)
 
     local _points={
     0,0,1,
@@ -208,16 +233,15 @@ function mesh.line(ops)
         table.insert(v,{x,y,z,1,1,1,0,0})
     end
     -- return mesh{vertex=v,mode='triangles'}
-    return mesh{vertex=v,mode='strip'}
+    return Mesh{vertex=v,mode='strip'}
 end
 ---for convex
-function mesh.polygon(ops)
+function Mesh.polygon(ops)
     local vertex={}
     for i,p in ipairs(ops.points) do
-        local v={0,0,0,1,1,1,0,0}
-        for t,value in ipairs(p) do
-            v[t]=value
-        end
+        p=Point(p)
+        local x,y,z=p:unpack()
+        local v={x,y,z,1,1,1,0,0}
         table.insert(vertex,v)
     end
     local map={}
@@ -226,10 +250,10 @@ function mesh.polygon(ops)
         table.insert(map,i+1)
         table.insert(map,i+2)
     end
-    return mesh{vertex=vertex,vmap=map,mode="triangles"}
+    return Mesh{vertex=vertex,vmap=map,mode="triangles"}
 end
 
-function mesh:new(ops)
+function Mesh:new(ops)
     self.vertex=ops.vertex
     self.mode=ops.mode  or 'fan'
     self.vmap = ops.vmap
@@ -281,7 +305,10 @@ function mesh:new(ops)
     self.outline=ops.outline or 0
     self.transparent = false
 end
-function mesh:get_aabb(index)
+function Mesh:set_AABB(aabb)
+    self._aabb=aabb
+end
+function Mesh:get_AABB(index)
     index = index or 1
     if not self._aabb then
         local low=Point()
@@ -298,9 +325,9 @@ function mesh:get_aabb(index)
         local aabbs = {}
         self._aabb= AABB{max=high,min=low}
     end
-    return  self._aabb
+    return  self._aabb:clone()
 end
-function mesh:get_faces()
+function Mesh:get_faces()
     if self._faces then
         return self._faces
     end
@@ -344,7 +371,7 @@ function mesh:get_faces()
     self._faces=faces
     return faces
 end
-function mesh:get_triangles()
+function Mesh:get_triangles()
     local triangles={}
     if self.mode=="triangles" then
         for i=1,#self.vmap,3 do
@@ -367,27 +394,27 @@ local function resolve_index_data(index,data)
 end
 ---@param index Point|number
 ---@param p3d Point|nil
-function mesh:set_position(index, p3d)
+function Mesh:set_position(index, p3d)
     index ,p3d=resolve_index_data(index,p3d)
     self._position[index] = p3d
     p3d=p3d-self.anchor -- move to origin
     self._tl:setVertex(index,p3d:unpack())
 end
 ---@return Point
-function mesh:get_position(index)
+function Mesh:get_position(index)
     index =index or 1
     return self._position[index]
 end
-function mesh:move(index,dv)
+function Mesh:move(index,dv)
     index ,dv=resolve_index_data(index,dv)
     local pos=self:get_position()
     self:set_position(index,pos:add(dv))
 end
-function mesh:set_scale(index,p3d)
+function Mesh:set_scale(index,p3d)
     index,p3d=resolve_index_data(index,p3d)
     self._sc:setVertex(index, Point(p3d):unpack())
 end
-function mesh:color_tone(color)
+function Mesh:color_tone(color)
     color=Color(color)
     self._color:setVertex(1,color:unpack())
     if color.a<1 then
@@ -396,11 +423,11 @@ function mesh:color_tone(color)
         self.transparent=false
     end
 end
-function mesh:set_quat(index,quat)
+function Mesh:set_quat(index,quat)
     index,quat=resolve_index_data(index,quat)
     self._quat:setVertex(index, quat:unpack())
 end
-function mesh:draw()
+function Mesh:draw()
     love.graphics.push('all')
     love.graphics.setWireframe(self.wireframe)
     if self.instance>1 then
@@ -411,4 +438,4 @@ function mesh:draw()
     love.graphics.pop()
 end
 
-return mesh
+return Mesh

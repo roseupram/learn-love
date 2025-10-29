@@ -1,4 +1,4 @@
-require('lldebugger').start()
+--require('lldebugger').start()
 -- print(_VERSION)
 local function addpath(folder)
     -- DO NOT use package.path, not works in windows
@@ -24,7 +24,7 @@ function love.load()
     local font =love.graphics.newFont(18)
     love.graphics.setFont(font)
     print('load')
-    local scene=require('scene.isometric')
+    local scene=require('scene.navigation')
     root_scene = scene {
         y = 10,
         width = 100,

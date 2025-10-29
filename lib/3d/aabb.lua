@@ -63,12 +63,26 @@ function AABB:test_aabb(aabb)
     end
     return true
 end
+--- max,min=AABB:unpack()
 function AABB:unpack()
     return self.max,self.min
 end
 ---new place add
 function AABB:__add(point)
     return AABB{max=self.max+point,min=self.min+point}
+end
+---get a aabb bounding 2 aabb
+function AABB:merge(aabb)
+    local max_a,min_a=self:unpack()
+    local max_b,min_b=aabb:unpack()
+    local max_n,min_n=Point(),Point()
+    max_n:each(function (v,i,ref)
+        ref[i]=math.max(max_a[i],max_b[i])
+    end)
+    min_n:each(function (v,i,ref)
+        ref[i]=math.min(min_a[i],min_b[i])
+    end)
+    return AABB{max=max_n,min=min_n}
 end
 ---in place add
 function AABB:add(point)
@@ -78,6 +92,33 @@ function AABB:add(point)
         face:add(point)
     end
     return self
+end
+function AABB:center()
+    return (self.max+self.min)/2
+end
+function AABB:project(normal)
+    local mask=Point(1,1,1)-normal:abs()
+    local min=self.min*mask
+    local max=self.max*mask
+    local diag=max-min
+    local dirs={}
+    mask:each(function (v,k)
+        if v==1 then
+            local p = Point()
+            p[k] = 1
+            table.insert(dirs, p)
+        end
+    end)
+    local res={min,nil,max}
+    for i, d in ipairs(dirs) do
+        local s = min + diag * d
+        if d:cross(mask):dot(normal) > 0 then
+            res[2] = s
+            res[4] = min + diag * dirs[FP.cycle(i + 1, 1, #dirs)]
+            break
+        end
+    end
+    return res
 end
 function AABB:clone()
     return AABB{max=self.max:clone(),min=self.min:clone()}

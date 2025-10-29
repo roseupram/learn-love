@@ -168,12 +168,12 @@ function sc:new()
     self.waypoints={}
     self.velocity_P=1
 
+    my_shader=Shader.new('isometric','frag')
+    self.player=Movable{image=lg.newImage("images/player.png")}
     local enemy=Movable{image=lg.newImage("images/enemy.png")}
     enemy:set_position(Point(-2,0,-4))
     self:push(enemy,'enemy')
-    my_shader=Shader.new('isometric','frag')
-    self.image= lg.newImage("images/player.png")
-    self.player=Movable{image=self.image}
+
     local base_ring=Mesh.ring()
     base_ring:set_scale{.2,.2,.2}
     self:push(base_ring,"base_ring")
@@ -185,7 +185,9 @@ function sc:new()
 
     local platform = Mesh.glb("model/platform.glb")
     platform:set_position(Point(6,0,0))
+    local aabb_platform=Mesh.cube{wireframe=true,AABB=platform:get_AABB()}
     self:push(platform,"platform")
+    self:push(aabb_platform,"aabb_platform")
     local tris=platform:get_triangles()
     local walkable={}
     local cos_thre =math.cos(math.rad(45))
@@ -202,28 +204,47 @@ function sc:new()
     local house=Mesh.glb("model/test.glb")
     house:set_position(Point(-4,0,-4))
     self:push(house,"house")
+    local house_aabb=house:get_AABB()
+    local aabb_mesh=Mesh.cube{wireframe=true,AABB=house_aabb}
+    self:push(aabb_mesh,"debug_aabb")
+    local hole=house_aabb:project(Point(0,-1,0))
     local ground_size=10
     local points={{1,0,1},{1,0,-1},{-1,0,-1},{-1,0,1}}
-    --- points=diff(points,aabb(platform))
-    --- union(points,walkable)
     for i,p in ipairs(points) do
-        for t,v in ipairs(p) do
-            p[t]=v*ground_size
-        end
+        points[i]=Point(p)*ground_size
     end
+    local platform_hole=platform:get_AABB():project(Point(0,-1,0))
+    points=Navigate.poly_diff(points,hole)
+    points=Navigate.poly_diff(points,platform_hole)
+    local face=Face{points=points,sorted=true}
+    --- union(points,walkable)
+    local colors={{1,0,0},{0,1,0},{0,0,1},{.5,.5,.5},{.2,.7,.9}}
+    local face_tris=face:triangulate()
+    local group=Mesh.group()
+    for i,tri in ipairs(face_tris) do
+        local vertex={}
+        for t,p in ipairs(tri) do
+            local x,y,z=Point(p):unpack()
+            local r,g,b=table.unpack(colors[FP.cycle(i,1,#colors)])
+            local v={x,y,z,r,g,b,0,0}
+            table.insert(vertex,v)
+        end
+        local mesh = Mesh { vertex = vertex, mode="triangles" }
+        -- group:push(mesh)
+    end
+    local convex=Navigate.convex_decompose(face)
+    for i,conv in ipairs(convex) do
+        local mesh=Mesh.polygon{points=conv}
+        local color = Color(colors[FP.cycle(i,1,#colors)])
+        color.r=color.r*math.sin(i)
+        mesh:color_tone(color)
+        group:push(mesh)
+    end
+    self:push(group,"mesh_group")
+
     local ground=Mesh.polygon{points=points}
     ground:color_tone{.6,.6,.9}
-    self:push(ground,"ground")
-    local pq=PQ{compare=FP.greater}
-    pq:push(10)
-    pq:push(4)
-    pq:push(12)
-    pq:push(2)
-    pq:push(100)
-    pq:push(16)
-    print("pop: ",pq:pop())
-    print("top: ",pq:top())
-    print("len: ",pq:len())
+    -- self:push(ground,"ground")
 end
 function sc:mousepressed(x,y,button,is_touch,times)
     if button==1 then

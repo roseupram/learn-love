@@ -1,4 +1,7 @@
 local FP={}
+function FP.fract(a)
+    return a-math.floor(a)
+end
 function FP.greater(a,b)
     return a>b
 end

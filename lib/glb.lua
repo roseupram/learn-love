@@ -25,7 +25,7 @@ local ld=love.data
 
 ---comment
 ---@param file_name any
----@return {meshes:{index:table,material:table,POSITION:table,TEXCOORD_0:table,NORMAL:table}[][],json:table}
+---@return {meshes:{index:table,material:table,POSITION:table,TEXCOORD_0:table,NORMAL:table,max:table,min:table}[][],json:table}
 function glb.read(file_name)
     local data ,size= assert(lsf.read('data',file_name))
     local pos = 1
