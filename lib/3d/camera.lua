@@ -40,8 +40,8 @@ function camera:project_mat()
     local mat=Mat{
         scale, 0, 0, 0,
         0, scale * self.wh_ratio, 0, 0,
-        0, 0, scale / -fn, -self.near/fn,
-        0, 0, 0, 1
+        0, 0, scale / -fn, 0,
+        0, 0,-self.near/fn , 1
     }
     return mat
 end

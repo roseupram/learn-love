@@ -1,3 +1,4 @@
+local FP=require('FP')
 local vp = require('vector')
 ---@class Point:Vector
 ---@overload fun(...):Point
@@ -15,6 +16,12 @@ function point:new(x,y,z)
     self.x=x
     self.y=y
     self.z=z
+end
+function point:angle(p,normal)
+    normal=normal or point(0,1,0)
+    local cos=self:dot(p)
+    local sin=p:cross(self):dot(normal)
+    return math.atan2(sin,cos)
 end
 --- cross product
 function point:cross(p)

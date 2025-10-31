@@ -17,9 +17,9 @@ mat4 quat_to_mat(vec4 quat){
     float yy=y*y,yz=y*z,yw=y*w;
     float zz=z*z,zw=z*w;
     return mat4(
-        1-2*(yy+zz), 2*(xy-zw), 2*(xz+yw),0,
-        2*(xy+zw), 1-2*(xx+zz),2*(yz-xw),0,
-        2*(xz-yw),2*(yz+xw),1-2*(xx+yy),0,
+        1-2*(yy+zz), 2*(xy+zw), 2*(xz-yw),0,
+        2*(xy-zw), 1-2*(xx+zz),2*(yz+xw),0,
+        2*(xz+yw),2*(yz-xw),1-2*(xx+yy),0,
         0,0,0,1
     );
 }
@@ -85,7 +85,7 @@ mat4 scale_mat(vec3 sc){
 vec4 world_pos(vec4 v){
     mat4 self_sc = scale_mat(length(a_sc)!=0?a_sc:vec3(1,1,1));
     mat4 self_rot=quat_to_mat(a_quat);
-    mat4 model = self_sc*self_rot;
+    mat4 model = self_rot*self_sc;
     v=model*v; // model
     v+=vec4(a_tl,0);
     return v;

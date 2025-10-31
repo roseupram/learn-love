@@ -316,7 +316,7 @@ function sc:new()
             2,0,1,
             3,0,0,
             2,0,-1,
-        },
+        }
     }
     arrow:set_position(Point(4,-1,4))
     self:push(arrow,"arrow")

@@ -37,12 +37,13 @@ function AABB:new(ops)
 end
 function AABB:test_ray(point,direction)
     local pos,normal
-    local t_min=9999
+    local t_min=1e10
+    local dir_n=direction:normal()
     for i,face in ipairs(self.faces) do
-        local t = face:test_ray(point,direction)
+        local t = face:test_ray(point,dir_n)
         if t and t<t_min then
             t_min=t
-            pos=point+direction*t
+            pos=point+dir_n*t
             normal=face.normal
         end
     end

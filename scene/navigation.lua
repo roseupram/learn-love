@@ -104,15 +104,35 @@ function sc:update(dt)
     my_shader:send('time',Time)
     my_shader:send('VIEW','column',cam:view_mat():flat())
     my_shader:send('PROJECT','column',cam:project_mat():flat())
+
+    local p, d = cam:ray(love.mouse.getPosition())
+    local A = Point(0, .1, 0)     -- (A,n) is a plane
+    local n = Point(0, 1, 0)
+    local t = (p - A):dot(n) / (d:dot(n))
+    local gp = p + d * -t
+    local B=gp:clone()
+    local dir=Point(0,0,1):add(A)
+    local line=self:get('line')
+    local L=line:get_position()+A
+    local LB=B-L
+    local lt=LB:len()
+    for i,shape in ipairs(self.static_shape) do
+        local pos,normal=shape:test_ray(L,LB)
+        if pos then
+            local new_lt=(pos-L):len()
+            if new_lt<lt then
+                lt=new_lt
+            end
+        end
+    end
+    local theta=LB:angle(dir)
+    local quat=Quat.from_normal(Point(0,1,0),theta)
+    line:set_quat(quat)
+    line:set_scale(Point(1,1,lt))
     if self.clicked then
         local times = FP.clamp(self.clicked,1,2)
         self.velocity_P=times==1 and 3 or 8
         self.clicked=false
-        local p, d = cam:ray(love.mouse.getPosition())
-        local A = Point(0, .1, 0) -- (A,n) is a plane
-        local n = Point(0, 1, 0)
-        local t = (p - A):dot(n) / (d:dot(n))
-        local gp = p + d * -t
         self.circle:set_position(gp)
         self.target_pos=gp
     end
@@ -135,6 +155,7 @@ function sc:update(dt)
         dvdt=dvdt*FP.clamp(distance,0,1)
     end
     self.player:move(dvdt)
+    line:set_position(self.player:get_position())
     self:get("base_ring"):set_position(self.player:get_position())
     -- local q = Quat.from_normal(Point(0, 1, 0), math.rad(-cam.y_rot))
     -- self.player:set_quat(q)
@@ -183,9 +204,11 @@ function sc:new()
     self.circle:color_tone(plt.cyan:clone()-Color(0,0,0,.3))
     self:push(self.circle,"circle")
 
+    self.static_shape={}
     local platform = Mesh.glb("model/platform.glb")
     platform:set_position(Point(6,0,0))
     local aabb_platform=Mesh.cube{wireframe=true,AABB=platform:get_AABB()}
+    table.insert(self.static_shape,platform:get_AABB())
     self:push(platform,"platform")
     self:push(aabb_platform,"aabb_platform")
     local tris=platform:get_triangles()
@@ -205,6 +228,7 @@ function sc:new()
     house:set_position(Point(-4,0,-4))
     self:push(house,"house")
     local house_aabb=house:get_AABB()
+    table.insert(self.static_shape,house_aabb)
     local aabb_mesh=Mesh.cube{wireframe=true,AABB=house_aabb}
     self:push(aabb_mesh,"debug_aabb")
     local hole=house_aabb:project(Point(0,-1,0))
@@ -219,19 +243,7 @@ function sc:new()
     local face=Face{points=points,sorted=true}
     --- union(points,walkable)
     local colors={{1,0,0},{0,1,0},{0,0,1},{.5,.5,.5},{.2,.7,.9}}
-    local face_tris=face:triangulate()
     local group=Mesh.group()
-    for i,tri in ipairs(face_tris) do
-        local vertex={}
-        for t,p in ipairs(tri) do
-            local x,y,z=Point(p):unpack()
-            local r,g,b=table.unpack(colors[FP.cycle(i,1,#colors)])
-            local v={x,y,z,r,g,b,0,0}
-            table.insert(vertex,v)
-        end
-        local mesh = Mesh { vertex = vertex, mode="triangles" }
-        -- group:push(mesh)
-    end
     local convex=Navigate.convex_decompose(face)
     for i,conv in ipairs(convex) do
         local mesh=Mesh.polygon{points=conv}
@@ -241,10 +253,16 @@ function sc:new()
         group:push(mesh)
     end
     self:push(group,"mesh_group")
-
-    local ground=Mesh.polygon{points=points}
-    ground:color_tone{.6,.6,.9}
-    -- self:push(ground,"ground")
+    local line=Mesh.line{
+        points={
+            0,1,0,
+            0,1,1
+        },colors={
+            1,1,1,
+            1,0,1
+        }
+    }
+    self:push(line,'line')
 end
 function sc:mousepressed(x,y,button,is_touch,times)
     if button==1 then

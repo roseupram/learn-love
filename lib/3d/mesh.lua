@@ -1,4 +1,5 @@
 local protype=require('prototype')
+local Quat=require('3d.quat')
 local Array=require('array')
 local Glb=require('glb')
 local Color=require('color')
@@ -178,6 +179,17 @@ function Mesh.ring()
     end
     return Mesh{vertex=v,mode='strip'}
 end
+local function pack_table(t, size)
+    local pt={}
+    for i=1,#t,size do
+        local it={}
+        for k=i,i+size do
+            table.insert(it,t[k])
+        end
+        table.insert(pt,it)
+    end
+    return pt
+end
 function Mesh.line(ops)
 
     local _points={
@@ -196,44 +208,44 @@ function Mesh.line(ops)
         for i=1,len,3 do
             table.insert(points,Point(ps[i],ps[i+1],ps[i+2]))
         end
-    elseif ps_type=='table' and ps[1].name~='Point' then
+    elseif ps_type=='table' then
         for i,pt in ipairs(ps) do
             table.insert(points,Point(pt))
         end
     end
     
+    local normal=ops.normal or Point(0,1,0)
+    local lw=ops.linewidth or .2
+    local colors=pack_table(ops.colors or {},3)
+
     local v={}
     local dir
-    local deg90 = math.pi / 2
-    local rot=ops.normal or Point(0,1,0)
-    rot:mul(deg90)
-    local lw=.2
-    for i,point in ipairs(points) do
-        local not_last_one=points[i+1]~=nil
-        if i>1 and not_last_one then
+    local quat=Quat.from_normal(normal,math.rad(90))
+    for i, point in ipairs(points) do
+        local offset_v = {}
+        local not_last_one = points[i + 1] ~= nil
+        if i > 1 and not_last_one then
             -- for previous vertex
-            local perpendicu = dir:rotate(rot:unpack()):normal()
-            local half_lw = lw / 2.0
-
-            local x, y, z = (point + perpendicu * half_lw):unpack()
-            table.insert(v, { x, y, z, 1, 1, 1, 0, 0 })
-            x, y, z = (point - perpendicu * half_lw):unpack()
-            table.insert(v, { x, y, z, 1, 1, 1, 0, 0 })
+            local perpendicu = quat:apply(dir):normal()
+            table.insert(offset_v, perpendicu)
+            table.insert(offset_v, -perpendicu)
         end
         if not_last_one then
-            dir = points[i+1]-points[i]
+            dir = points[i + 1] - points[i]
         end
-        -- for next vertex
-        local perpendicu=dir:rotate(rot:unpack()):normal()
+        local perpendicu = quat:apply(dir):normal()
+        table.insert(offset_v, perpendicu)
+        table.insert(offset_v, -perpendicu)
+
         local half_lw=lw/2.0
 
-        local x,y,z=(point+perpendicu*half_lw):unpack()
-        table.insert(v,{x,y,z,1,1,1,0,0})
-        x,y,z=(point-perpendicu*half_lw):unpack()
-        table.insert(v,{x,y,z,1,1,1,0,0})
+        for k,offset in ipairs(offset_v) do
+            local x, y, z = (point + offset * half_lw):unpack()
+            local r,g,b= Color(colors[i] or {1,1,1}):unpack()
+            table.insert(v, { x, y, z, r, g, b, 0, 0 })
+        end
     end
-    -- return mesh{vertex=v,mode='triangles'}
-    return Mesh{vertex=v,mode='strip'}
+    return Mesh{vertex=v,mode='strip',usage=ops.usage}
 end
 ---for convex
 function Mesh.polygon(ops)

@@ -67,14 +67,14 @@ function Face:test_ray(point,dir)
     local dir_n=dir:normal()
 
     local dist = self:distance(point)
-    local m = dist * (dir_n:dot(n))
+    local cos_n_d = dir_n:dot(n)
+    local m = dist * cos_n_d
     if m>0 then
         return nil
     end
-    local cos_n_d = dir_n:dot(n)
     local t=-dist/cos_n_d
     local size = #self.points
-    local point_onface = point+dir*t
+    local point_onface = point+dir_n*t
     for i=1,size do
         local A = self.points[i]
         local B = self.points[FP.cycle(i+1,1,size)]

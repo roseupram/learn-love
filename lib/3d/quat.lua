@@ -1,5 +1,6 @@
 local vtype=require('vector')
----@class Quat
+local Point=require('3d.point')
+---@class Quat:Vector
 local Quat = vtype { name = "Quat",
     default = { x = 0, y = 0, z = 0, w = 1 },
     keys = { 'x', 'y', 'z', 'w' }
@@ -12,6 +13,12 @@ function Quat.from_normal(normal,theta)
     local sin=math.sin(theta/2)
     local x,y,z=(normal*sin):unpack()
     return Quat(x,y,z,w)
+end
+function Quat:apply(point)
+    local x, y, z, w = self:unpack()
+    local qv=Point(x,y,z)
+    local rotated=point+qv:cross(point)*2*w+qv:cross(qv:cross(point))*2
+    return rotated
 end
 function Quat:new(x,y,z,w)
     self.x=x
