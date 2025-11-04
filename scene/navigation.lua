@@ -14,9 +14,8 @@ local Node=require('3d.node')
 local Quat=require('3d.quat')
 local Face=require('3d.face')
 local Navigate=require('3d.navigate')
-local Mat=require("3d.mat")
 local Movable=require('scene.movable')
-local PQ=require('data.pqueue')
+local Collision=require('3d.collision')
 
 
 local my_shader
@@ -116,13 +115,11 @@ function sc:update(dt)
     local L=line:get_position()+A
     local LB=B-L
     local lt=LB:len()
-    for i,shape in ipairs(self.static_shape) do
-        local pos,normal=shape:test_ray(L,LB)
-        if pos then
-            local new_lt=(pos-L):len()
-            if new_lt<lt then
-                lt=new_lt
-            end
+    local pos, normal = self.collision_world:test_ray(L, LB)
+    if pos then
+        local new_lt = (pos - L):len()
+        if new_lt < lt then
+            lt = new_lt
         end
     end
     local theta=LB:angle(dir)
@@ -204,13 +201,15 @@ function sc:new()
     self.circle:color_tone(plt.cyan:clone()-Color(0,0,0,.3))
     self:push(self.circle,"circle")
 
-    self.static_shape={}
+    self.collision_world=Collision.World()
+
     local platform = Mesh.glb("model/platform.glb")
     platform:set_position(Point(6,0,0))
     local aabb_platform=Mesh.cube{wireframe=true,AABB=platform:get_AABB()}
-    table.insert(self.static_shape,platform:get_AABB())
+    self.collision_world:push(platform:get_AABB())
     self:push(platform,"platform")
     self:push(aabb_platform,"aabb_platform")
+
     local tris=platform:get_triangles()
     local walkable={}
     local cos_thre =math.cos(math.rad(45))
@@ -224,11 +223,12 @@ function sc:new()
         end
     end
 
+
     local house=Mesh.glb("model/test.glb")
     house:set_position(Point(-4,0,-4))
     self:push(house,"house")
     local house_aabb=house:get_AABB()
-    table.insert(self.static_shape,house_aabb)
+    self.collision_world:push(house_aabb)
     local aabb_mesh=Mesh.cube{wireframe=true,AABB=house_aabb}
     self:push(aabb_mesh,"debug_aabb")
     local hole=house_aabb:project(Point(0,-1,0))
@@ -256,8 +256,10 @@ function sc:new()
     local line=Mesh.line{
         points={
             0,1,0,
+            0,1,.9,
             0,1,1
         },colors={
+            1,1,1,
             1,1,1,
             1,0,1
         }
