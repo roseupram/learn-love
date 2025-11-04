@@ -46,6 +46,14 @@ function Mesh_Group:get_triangles()
     end
     return tris
 end
+function Mesh_Group:set_instance(tl_data)
+    local attribute='a_tl'
+    local format={{attribute,'float',3}}
+    for i,mesh in ipairs(self.children) do
+        mesh.instance=#tl_data
+        mesh:set_instance{tl=tl_data}
+    end
+end
 function Mesh_Group:get_AABB(with_tl)
     with_tl=with_tl or true
     local aabb=self.children[1]:get_AABB()
@@ -81,7 +89,7 @@ local vformat = {
     { "VertexTexCoord", "float", 2 }
 }
 ---@param ops table
----@return Mesh_Group
+---@return Mesh_Group[]
 function Mesh.glb(ops)
     local glb_data=Glb.read(ops.filename)
     local nodes={}
@@ -288,26 +296,7 @@ function Mesh:new(ops)
     self.instance=ops.instance or 1
     self.wireframe=ops.wireframe or false
     self.anchor=ops.anchor or Point()
-    local dfv = {
-        sc={1,1,1},
-        quat={0,0,0,1},
-        color =  { 1, 1, 1, 1 } ,
-        fallback =  { 0, 0, 0 }
-    }
-    for i,k in ipairs{"tl","sc","color","quat"} do
-        local key="_"..k
-        local attribute="a_"..k
-        local data = {}
-        for inst = 1, self.instance do
-            if ops[k] and ops[k][inst] then
-                data[inst] = ops[k][inst]
-            else
-                data[inst] = dfv[k] or dfv["fallback"]
-            end
-        end
-        self[key]=love.graphics.newMesh({{attribute,"float",#data[1]}},data,nil)
-        self._mesh:attachAttribute(attribute, self[key], "perinstance")
-    end
+    self:set_instance(ops)
     if ops.normal then
         local n_mesh=love.graphics.newMesh({{"a_normal","float",3}},ops.normal)
         self._mesh:attachAttribute("a_normal", n_mesh, "pervertex")
@@ -329,6 +318,31 @@ function Mesh:new(ops)
     end
     self.outline=ops.outline or 0
     self.transparent = false
+end
+function Mesh:set_instance(ops)
+    local dfv = {
+        sc={1,1,1},
+        quat={0,0,0,1},
+        color =  { 1, 1, 1, 1 } ,
+        fallback =  { 0, 0, 0 }
+    }
+    for i,k in ipairs{"tl","sc","color","quat"} do
+        local key="_"..k
+        local attribute="a_"..k
+        local data = {}
+        for inst = 1, self.instance do
+            if ops[k] and ops[k][inst] then
+                data[inst] = ops[k][inst]
+            else
+                data[inst] = dfv[k] or dfv["fallback"]
+            end
+        end
+        if self[key] then
+            self[key]:release()
+        end
+        self[key]=love.graphics.newMesh({{attribute,"float",#data[1]}},data,nil)
+        self._mesh:attachAttribute(attribute, self[key], "perinstance")
+    end
 end
 function Mesh:set_AABB(aabb)
     self._aabb=aabb

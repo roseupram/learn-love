@@ -163,6 +163,16 @@ function sc:new()
     self.circle:color_tone(plt.cyan:clone()-Color(0,0,0,.3))
     self:push(self.circle,"circle")
     local bases=Mesh.glb{filename='model/base.glb'}
+    bases[1]:set_instance({
+        {0,0,0},
+        {2,0,0},
+        {4,0,0}
+    })
+    bases[2]:set_instance({
+        {0,0,2},
+        {2,0,2},
+        {4,0,2}
+    })
     self:push(bases[1],"base")
     self:push(bases[2],"base2")
 end
