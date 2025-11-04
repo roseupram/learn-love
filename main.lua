@@ -24,7 +24,7 @@ function love.load()
     local font =love.graphics.newFont(18)
     love.graphics.setFont(font)
     print('load')
-    local scene=require('scene.navigation')
+    local scene=require('scene.rune_raider')
     root_scene = scene {
         y = 10,
         width = 100,

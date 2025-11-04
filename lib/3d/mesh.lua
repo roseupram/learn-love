@@ -80,17 +80,18 @@ local vformat = {
     { "VertexColor",    "float", 3 },
     { "VertexTexCoord", "float", 2 }
 }
----@param filename any
+---@param ops table
 ---@return Mesh_Group
-function Mesh.glb(filename)
-    local glb_data=Glb.read(filename)
-    local meshes={}
+function Mesh.glb(ops)
+    local glb_data=Glb.read(ops.filename)
+    local nodes={}
     for ni,node in ipairs(glb_data.json.nodes) do
+        local meshes = {}
         for pi, primitive in ipairs(glb_data.meshes[node.mesh+1]) do
             local vertex = {}
             local color = { 1, 1, 1 }
             if primitive.material then
-                color = primitive.material.pbrMetallicRoughness.baseColorFactor
+                color = primitive.material.pbrMetallicRoughness.baseColorFactor or color
             end
             for i, v_data in ipairs(primitive["POSITION"]) do
                 local v = {}
@@ -100,14 +101,26 @@ function Mesh.glb(filename)
                 for c = 1, 3 do
                     table.insert(v, color[c])
                 end
+                for _,texcoord in ipairs(primitive['TEXCOORD_0'][i]) do
+                    table.insert(v,texcoord)
+                end
                 table.insert(vertex, v)
             end
-            local m = Mesh { vertex = vertex, vmap = primitive.index, normal = primitive.NORMAL, mode = "triangles" }
+            local mesh_config={ vertex = vertex, vmap = primitive.index, normal = primitive.NORMAL, mode = "triangles" }
+            local texture_t =primitive.material.pbrMetallicRoughness.baseColorTexture
+            if texture_t then
+                mesh_config.texture=glb_data.images[texture_t.index+1]
+            end
+            local m = Mesh(mesh_config)
             m:set_AABB(AABB{max=Point(primitive.max),min=Point(primitive.min)})
+            if node.translation then
+                m:set_position(Point(node.translation))
+            end
             table.insert(meshes,m)
         end
+        table.insert(nodes,Mesh_Group{meshes=meshes})
     end
-    return Mesh_Group{meshes=meshes}
+    return nodes
 end
 function Mesh.group(meshes)
     return Mesh_Group{meshes=meshes}

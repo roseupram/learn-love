@@ -3,14 +3,14 @@ local FP=require('FP')
 
 local path=(...):gsub("[^.]+$","") -- remove last name
 local Point=require(path..'point')
-local Mat=require(path..'mat')
+local Mat=require('3d.mat')
 ---@class Camera:prototype
 ---@overload fun(...):Camera
 local camera=prototype{name="Camera"}
 
 function camera:new(ops)
     self.radius=10
-    self.x_rot=-30
+    self.x_rot=-50
     self.y_rot=45
     self.wh_ratio=1.0
     self.near=0.1
@@ -45,12 +45,16 @@ function camera:project_mat()
     }
     return mat
 end
+function camera:view_pos()
+    local view_to_world=self:rotate_mat()
+    local eye=view_to_world*Point(0,0,1)+self.tl
+    return eye
+end
 ---world to view
 ---@return Mat4
 function camera:view_mat()
-    local view_to_world=self:rotate_mat()
-    local eye=view_to_world*Point(0,0,1)
-    local mat=Mat.look_at(eye+self.tl,self.tl)
+    local eye=self:view_pos()
+    local mat=Mat.look_at(eye,self.tl)
     return mat
 end
 function camera:rotate_mat()

@@ -1,8 +1,26 @@
+local pttype=require("prototype")
 local _cache={}
 local lg=love.graphics
 local lfs=love.filesystem
+local uniform_list=pttype{name="Uniform_List"}
+function uniform_list:new()
+    self.data={}
+end
+function uniform_list:set(...)
+    local args={...}
+    local name = table.remove(args,1)
+    self.data[name]= args
+end
+function uniform_list:apply(shader)
+    for name,params in pairs(self.data) do
+        if shader:hasUniform(name) then
+            shader:send(name, table.unpack(params))
+        end
+    end
+end
 local shader={path_prefix="shader/",path_suffix=".out.glsl"}
-    -- my_shader=lg.newShader('shader/frag.glsl','shader/isometric.out.glsl')
+shader.uniform_list=uniform_list
+
 function shader.full_path(name)
     return shader.path_prefix .. name .. shader.path_suffix
 end
