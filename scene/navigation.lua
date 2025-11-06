@@ -20,7 +20,7 @@ local Collision=require('3d.collision')
 
 local my_shader
 local lg = love.graphics
-local sc = Node{name="Isometric"}
+local sc = Node{name="Navigation"}
 function sc:draw()
     lg.push('all')
     local bg_color = {.2,.3,.3}

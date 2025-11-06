@@ -4,7 +4,7 @@ uniform vec3 light_position=vec3(1,1,1)*10;
 uniform vec3 view_pos;
 uniform vec3 light_color=vec3(1,1.0,1.0);
 uniform float ambient=.2;
-uniform float shiny=0.2;
+uniform float shiny=0.01;
 
 varying vec4 v_color;
 varying vec3 v_normal;

@@ -269,6 +269,7 @@ function Mesh.line(ops)
     return Mesh{vertex=v,mode='strip',usage=ops.usage}
 end
 ---for convex
+---@param ops {points:table}
 function Mesh.polygon(ops)
     local vertex={}
     for i,p in ipairs(ops.points) do

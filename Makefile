@@ -14,7 +14,7 @@ build: remove-debug shader-compile $(LOVE_FILE) restore
 
 $(LOVE_FILE):
 	@echo "enable fullscreen"
-	sed -i.bak /fullscreen/s/false/true/ conf.lua
+	sed -i.bak -e '/fullscreen/s/false/true/; /Release/s/false/true/' conf.lua
 	mkdir -p $(Release_dir)
 	@echo "zip to love"
 	zip $@ -ru * -x release "*.bak" "*.m4.glsl" "shader/lib/*" 

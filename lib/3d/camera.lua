@@ -10,7 +10,7 @@ local camera=prototype{name="Camera"}
 
 function camera:new(ops)
     self.radius=10
-    self.x_rot=-50
+    self.x_rot=-30
     self.y_rot=45
     self.wh_ratio=1.0
     self.near=0.1

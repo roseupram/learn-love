@@ -16,11 +16,12 @@ local Face=require('3d.face')
 local Navigate=require('3d.navigate')
 local Mat=require("3d.mat")
 local Movable=require('scene.movable')
+local UI=require('scene.UI')
 
 
 local my_shader
 local lg = love.graphics
-local sc = Node{name="Isometric"}
+local sc = Node{name="Rune_Raider"}
 function sc:draw()
     lg.push('all')
     local bg_color = {.2,.3,.3}
@@ -62,6 +63,7 @@ function sc:draw()
             child:draw()
         end
     end
+    self.UI:draw()
     lg.setShader()
     lg.setDepthMode()
     local x, y =love.mouse.getPosition()
@@ -81,6 +83,7 @@ function sc:draw()
 end
 ---@param dt number
 function sc:update(dt)
+    self.UI:update(dt)
     local Time = self.Time+dt
     self.Time=Time
     timer:update(dt)
@@ -104,7 +107,7 @@ function sc:update(dt)
     self.uniform_list:set('VIEW','column',cam:view_mat():flat())
     self.uniform_list:set('PROJECT','column',cam:project_mat():flat())
     self.uniform_list:set('view_pos',cam:view_pos():table())
-    if self.clicked then
+    if self.clicked and self.used_card.name == "move" then
         local times = FP.clamp(self.clicked,1,2)
         self.velocity_P=(times-1)*5+3
         self.clicked=false
@@ -130,6 +133,16 @@ function sc:update(dt)
 end
 
 function sc:new()
+    self.used_card={}
+    self.UI=UI()
+    self.UI.on_card_used=function (ui_ref,card)
+        print(card and card.name or "nothing","used")
+        self.used_card=card
+    end
+    self.UI.on_card_canceld=function (ui_ref,card)
+        print(card and card.name or "nothing","cancel")
+        self.used_card={}
+    end
     local plt={
         red = Color(.9, .2, .2),
         cyan = Color(.1, .7, .9),
@@ -139,6 +152,7 @@ function sc:new()
     self.rotate_pivot=-1
     self.camera=Camera()
     lg.setDepthMode('less',true)
+    lg.setMeshCullMode('back')
     -- love.mouse.setRelativeMode(true)
     local w,h=lg.getDimensions()
     self.shadowmap_canvas=lg.newCanvas(w,h,{format="depth16",readable=true})
@@ -155,35 +169,36 @@ function sc:new()
     enemy:set_position(Point(-2,0,-4))
     self:push(enemy,'enemy')
     my_shader=Shader.new('isometric','frag')
-    self.image= lg.newImage("images/player.png")
-    self.player=Movable{image=self.image}
+    local image= lg.newImage("images/player.png")
+    self.player=Movable{image=image}
     self:push(self.player,"player")
 
     self.circle=Mesh.ring()
     self.circle:color_tone(plt.cyan:clone()-Color(0,0,0,.3))
     self:push(self.circle,"circle")
-    local bases=Mesh.glb{filename='model/base.glb'}
-    bases[1]:set_instance({
-        {0,0,0},
-        {2,0,0},
-        {4,0,0}
-    })
-    bases[2]:set_instance({
-        {0,0,2},
-        {2,0,2},
-        {4,0,2}
-    })
-    self:push(bases[1],"base")
-    self:push(bases[2],"base2")
+    local terrain=Mesh.glb{filename='model/base.glb'}
+    self:push(terrain[1])
+    local polygon=Mesh.polygon{points={
+        {0,0,10},
+        {10,0,0},
+        {0,0,-10},
+        {-10,0,0}
+    }}
+    polygon:color_tone{.2,.4,.4}
+    self:push(polygon,'polygon')
 end
 function sc:mousepressed(x,y,button,is_touch,times)
+    local stop=self.UI:mousepressed(x,y,button,is_touch,times)
+    if stop then
+        return
+    end
     if button==1 then
         self.clicked=times
     end
 end
 function sc:resize(w,h)
     self.camera.wh_ratio=w/h
-    -- spire.content=rectsize(0,0,w,h)
+    self.UI:resize(w,h)
 end
 function sc:wheelmoved(x,y)
     self.camera:zoom(-y)

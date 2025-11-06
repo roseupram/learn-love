@@ -2,15 +2,16 @@ local Node=require('3d.node')
 local Mesh=require('3d.mesh')
 local Point=require('3d.point')
 local Shader=require('shader')
+local lg=love.graphics
 ---@class Movable
 local Movable=Node{name="Movable"}
 function Movable:new(ops)
     self.image=ops.image
     self.mesh = Mesh { vertex = {
         { -1, 1,  0, 1, 1, 1, 0, 0 },
-        { 1,  1,  0, 1, 1, 1, 1, 0 },
-        { 1,  -1, 0, 1, 1, 1, 1, 1 },
         { -1, -1, 0, 1, 1, 1, 0, 1 },
+        { 1,  -1, 0, 1, 1, 1, 1, 1 },
+        { 1,  1,  0, 1, 1, 1, 1, 0 },
     }, texture = self.image,
         anchor = Point(0, -1, 0),
     }
@@ -20,6 +21,7 @@ function Movable:new(ops)
 end
 
 function Movable:draw()
+    lg.setMeshCullMode('none')
     self.mesh:draw()
 end
 function Movable:get_position()
