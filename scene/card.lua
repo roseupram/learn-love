@@ -6,9 +6,20 @@ local lg =love.graphics
 function Card:new(ops)
     self.name=ops.name
     self.pos=Vec()
+    self.range=ops.range or 0
     self.selected_move=Vec(0,-20)
     self.size=ops.size or Vec(70,100)
     self.color=ops.color or Color(.5,.5,.5)
+    self.damage=ops.damage or 6
+    if self.range>0 then
+        if self.name=='move' then
+            self.description = string.format("%s\nR:%d", self.name,self.range)
+        else
+            self.description = string.format("%s\nR:%d D:%d", self.name,self.range,self.damage)
+        end
+    else
+        self.description = self.name
+    end
 end
 function Card:draw()
     lg.push('all')
@@ -19,12 +30,15 @@ function Card:draw()
     if self.is_active then
         lg.setLineWidth(10)
         lg.setColor(1, 1, 1)
-        lg.rectangle('line', x_left, y_top, w, h)
+    else
+        lg.setLineWidth(2)
+        lg.setColor(.4, .2, .1)
     end
+    lg.rectangle('line', x_left, y_top, w, h)
     lg.setColor(self.color:unpack())
     lg.rectangle('fill',x_left,y_top,w,h)
     lg.setColor(1,1,1)
-    lg.printf(self.name,x_left,y_top+h*.1,w,'center')
+    lg.printf(self.description,x_left,y_top+h*.1,w,'center')
     lg.pop()
 end
 function Card:include(tx,ty)
@@ -41,10 +55,10 @@ function Card:mouse_in(x, y)
     end
 end
 
-function Card:active()
+function Card:selected()
     self.is_active = true
 end
-function Card:deactive()
+function Card:deselected()
     print('deactive')
     self.is_active = false
     self:mouse_out()

@@ -186,8 +186,9 @@ function Mesh.circle()
     end
     return Mesh{vertex=v,mode='fan'}
 end
-function Mesh.ring()
+function Mesh.ring(inner_radius)
     local v={}
+    inner_radius=inner_radius or .5
     local tau=math.pi*2
     local segment=24
     local step =tau/segment
@@ -196,7 +197,7 @@ function Mesh.ring()
         local z=math.cos(angle)
         local y=0
         table.insert(v,{x,y,z,1,1,1,0,0})
-        table.insert(v,{.5*x,y,.5*z,1,1,1,0,0})
+        table.insert(v,{inner_radius*x,y,inner_radius*z,1,1,1,0,0})
     end
     return Mesh{vertex=v,mode='strip'}
 end
@@ -432,10 +433,11 @@ local function resolve_index_data(index,data)
     end
     return index,data
 end
----@param index Point|number
----@param p3d Point|nil
+---@param index Point|table|number
+---@param p3d Point|table|nil
 function Mesh:set_position(index, p3d)
     index ,p3d=resolve_index_data(index,p3d)
+    p3d=Point(p3d)
     self._position[index] = p3d
     p3d=p3d-self.anchor -- move to origin
     self._tl:setVertex(index,p3d:unpack())
@@ -467,7 +469,16 @@ function Mesh:set_quat(index,quat)
     index,quat=resolve_index_data(index,quat)
     self._quat:setVertex(index, quat:unpack())
 end
+function Mesh:hide()
+    self.is_hide=true
+end
+function Mesh:show()
+    self.is_hide=false
+end
 function Mesh:draw()
+    if self.is_hide then
+        return
+    end
     love.graphics.push('all')
     love.graphics.setWireframe(self.wireframe)
     if self.instance>1 then

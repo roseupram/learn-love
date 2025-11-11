@@ -35,7 +35,8 @@ function love.resize(w,h)
     root_scene:resize(w,h)
     -- spire.content=rectsize(0,0,w,h)
 end
-function love.mousereleased(x,y)
+function love.mousereleased(x,y,button,istouch,times)
+    root_scene:mousereleased(x,y,button,istouch,times)
 end
 function love.mousemoved(x,y)
     root_scene:mousemoved(x,y)

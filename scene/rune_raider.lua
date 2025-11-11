@@ -107,52 +107,106 @@ function sc:update(dt)
     self.uniform_list:set('VIEW','column',cam:view_mat():flat())
     self.uniform_list:set('PROJECT','column',cam:project_mat():flat())
     self.uniform_list:set('view_pos',cam:view_pos():table())
-    if self.clicked and self.used_card.name == "move" then
-        local times = FP.clamp(self.clicked,1,2)
-        self.velocity_P=(times-1)*5+3
-        self.clicked=false
+    if self.used_card then
+        local card=self.used_card
         local p, d = cam:ray(love.mouse.getPosition())
-        local A = Point(0, .1, 0) -- (A,n) is a plane
+        local player_pos=self.player:get_position()
+        local A = Point(0, .1, 0)     -- (A,n) is a plane
         local n = Point(0, 1, 0)
         local t = (p - A):dot(n) / (d:dot(n))
         local gp = p + d * -t
-        self.circle:set_position(gp)
-        self.target_pos=gp
+
+        if gp:distance(player_pos) <= self.used_card.range then
+            self.circle:set_position(gp)
+            self.target_pos = gp
+        end
+        if card.name=='attack' then
+            local enemy=self:get('enemy')
+            local tt= enemy:test_ray(p,d)
+            local enemy_pos=enemy:get_position()
+            if tt then
+                if enemy_pos:distance(player_pos)<card.range then
+                    self.circle:set_position(enemy_pos)
+                    self.target_enemy = enemy
+                    enemy:highlight()
+                end
+            else
+                self.target_enemy=nil
+                enemy:normal()
+            end
+        end
+    end
+    if self.release_clicked and self.used_card then
+        local x,y=love.mouse.getPosition()
+        local card=self.used_card
+        if card.name == 'power' and card:include(x,y)then
+            self.UI:discard(self.used_card_i)
+            self.used_card = nil
+        elseif card.name=='move' then
+            if self.target_pos then
+                self.velocity_P = 10
+                self.UI:discard(self.used_card_i)
+                self.used_card = nil
+                self:get('range_cirlce'):hide()
+            end
+        elseif card.name=='attack' then
+            if self.target_enemy then
+                self.target_enemy:hurt(card.damage)
+                self.UI:discard(self.used_card_i)
+                self.used_card = nil
+                self.target_enemy=nil
+                self:get('range_cirlce'):hide()
+            end
+        end
+        self.release_clicked = nil
     end
 
-    local player_pos=self.player:get_position()
-    local PT = self.target_pos- player_pos
-    local distance = PT:len()
-    local velocity = PT:normal()
-
-    local scale = FP.sin(Time,.2,.5)
-    self.circle:set_scale(Point(scale,1,scale))
-    local dvdt = velocity * dt * self.velocity_P
-    dvdt = dvdt * FP.clamp(distance, 0, 1)
-    self.player:move(dvdt)
+    if self.target_pos and self.velocity_P>0 then
+        self.player:set_position(self.target_pos)
+        self.target_pos=nil
+        self.velocity_P=0
+    end
 end
 
 function sc:new()
-    self.used_card={}
-    self.UI=UI()
-    self.UI.on_card_used=function (ui_ref,card)
-        print(card and card.name or "nothing","used")
-        self.used_card=card
-    end
-    self.UI.on_card_canceld=function (ui_ref,card)
-        print(card and card.name or "nothing","cancel")
-        self.used_card={}
-    end
     local plt={
         red = Color(.9, .2, .2),
         cyan = Color(.1, .7, .9),
+        green=Color(.2,.8,.2)
     }
+    self.UI=UI.Card()
+    local cards={
+        {name='attack',color=plt.red,range=2},
+        {name='move',color=plt.cyan,range=4},
+        {name='attack',color=plt.red,range=3},
+        {name='move',color=plt.cyan,range=5},
+        {name='attack',color=plt.red,range=5},
+        {name='move',color=plt.cyan,range=3},
+        {name='power',color=plt.green},
+    }
+    self.UI:add_cards(cards)
+    self.UI.on_card_used=function (ui_ref,card,card_i)
+        print(card and card.name or "nothing","used")
+        self.used_card=card
+        self.used_card_i=card_i
+        local range_cirlce=self:get('range_cirlce')
+        range_cirlce:set_scale{card.range,1,card.range}
+        range_cirlce:set_position(self.player:get_position()+Point(0,.05,0))
+        range_cirlce:show()
+        self.velocity_P=0
+        self.target_pos=nil
+    end
+    self.UI.on_card_canceld=function (ui_ref,card)
+        print(card and card.name or "nothing","cancel")
+        self.used_card=nil
+        self:get("range_cirlce"):hide()
+    end
     self.uniform_list=Shader.uniform_list()
     self.Time=0
     self.rotate_pivot=-1
     self.camera=Camera()
     lg.setDepthMode('less',true)
-    lg.setMeshCullMode('back')
+    -- lg.setMeshCullMode('back')
     -- love.mouse.setRelativeMode(true)
     local w,h=lg.getDimensions()
     self.shadowmap_canvas=lg.newCanvas(w,h,{format="depth16",readable=true})
@@ -163,18 +217,22 @@ function sc:new()
     end
     self:resize(w,h)
     self.clicked=false
-    self.target_pos=Point(1,0,1)
-    self.velocity_P=1
+    self.target_pos=nil
+    self.velocity_P=0
     local enemy=Movable{image=lg.newImage("images/enemy.png")}
     enemy:set_position(Point(-2,0,-4))
     self:push(enemy,'enemy')
     my_shader=Shader.new('isometric','frag')
     local image= lg.newImage("images/player.png")
     self.player=Movable{image=image}
+    self.player:set_position{1,0,1}
     self:push(self.player,"player")
 
-    self.circle=Mesh.ring()
-    self.circle:color_tone(plt.cyan:clone()-Color(0,0,0,.3))
+    local range_cirlce=Mesh.ring(.9)
+    self:push(range_cirlce,"range_cirlce")
+    self.circle=Mesh.circle()
+    self.circle:color_tone(plt.red:clone())
+    self.circle:set_scale{.2,.2,.2}
     self:push(self.circle,"circle")
     local terrain=Mesh.glb{filename='model/base.glb'}
     self:push(terrain[1])
@@ -185,6 +243,7 @@ function sc:new()
         {-10,0,0}
     }}
     polygon:color_tone{.2,.4,.4}
+    polygon:set_position{0,-.1,0}
     self:push(polygon,'polygon')
 end
 function sc:mousepressed(x,y,button,is_touch,times)
@@ -194,6 +253,11 @@ function sc:mousepressed(x,y,button,is_touch,times)
     end
     if button==1 then
         self.clicked=times
+    end
+end
+function sc:mousereleased(x,y,button,is_touch,times)
+    if button==1 then
+        self.release_clicked=times
     end
 end
 function sc:resize(w,h)

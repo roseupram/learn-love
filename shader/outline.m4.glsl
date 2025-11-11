@@ -4,7 +4,7 @@ include(`isometric.m4.glsl')
 //start of frag
 uniform float lw = .01;
 float Threshod=.5;
-uniform vec4 edge_color = vec4(.9, .6, .1, .9);
+uniform vec4 edge_color = vec4(1,1,1,1);
 
 
 bool on_edge(Image tex, vec2 uv, float width) {
