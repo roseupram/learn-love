@@ -33,7 +33,7 @@ function sc:draw()
     local cam = self.camera
     local transp={}
     local to_draw={}
-    for i,child in ipairs(self.to_draw) do
+    for i,child in ipairs(self.children) do
         if child.transparent then
             table.insert(transp,child)
         else
@@ -53,7 +53,6 @@ function sc:draw()
         table.insert(to_draw, child)
     end
     for i,child in ipairs(to_draw) do
-        -- lg.setWireframe(true)
         if child.shader then
             self.uniform_list:apply(child.shader)
         end
@@ -83,6 +82,9 @@ function sc:draw()
 end
 ---@param dt number
 function sc:update(dt)
+    for i, child in ipairs(self.children) do
+        child:update(dt)
+    end
     self.UI:update(dt)
     local Time = self.Time+dt
     self.Time=Time
@@ -115,10 +117,14 @@ function sc:update(dt)
         local n = Point(0, 1, 0)
         local t = (p - A):dot(n) / (d:dot(n))
         local gp = p + d * -t
+        self.circle:set_position(gp)
 
         if gp:distance(player_pos) <= self.used_card.range then
-            self.circle:set_position(gp)
             self.target_pos = gp
+            self.circle:color_tone{1,0,0}
+        else
+            self.target_pos = nil
+            self.circle:color_tone { .5, .5, .5 }
         end
         if card.name=='attack' then
             local enemy=self:get('enemy')
@@ -139,24 +145,22 @@ function sc:update(dt)
     if self.release_clicked and self.used_card then
         local x,y=love.mouse.getPosition()
         local card=self.used_card
-        if card.name == 'power' and card:include(x,y)then
-            self.UI:discard(self.used_card_i)
-            self.used_card = nil
-        elseif card.name=='move' then
+        if card.name=='move' then
             if self.target_pos then
                 self.velocity_P = 10
-                self.UI:discard(self.used_card_i)
                 self.used_card = nil
                 self:get('range_cirlce'):hide()
             end
         elseif card.name=='attack' then
             if self.target_enemy then
                 self.target_enemy:hurt(card.damage)
-                self.UI:discard(self.used_card_i)
                 self.used_card = nil
                 self.target_enemy=nil
                 self:get('range_cirlce'):hide()
             end
+        end
+        if self.used_card==nil then
+            self.UI:play_card(self.used_card_i)
         end
         self.release_clicked = nil
     end
@@ -169,6 +173,7 @@ function sc:update(dt)
 end
 
 function sc:new()
+    self.children=Array()
     local plt={
         red = Color(.9, .2, .2),
         cyan = Color(.1, .7, .9),
@@ -256,6 +261,7 @@ function sc:mousepressed(x,y,button,is_touch,times)
     end
 end
 function sc:mousereleased(x,y,button,is_touch,times)
+    local stop=self.UI:mousereleased(x,y,button,is_touch,times)
     if button==1 then
         self.release_clicked=times
     end
@@ -268,6 +274,7 @@ function sc:wheelmoved(x,y)
     self.camera:zoom(-y)
 end
 function sc:keypressed(key,scancode,isrepeat)
+    self.UI:keypressed(key,scancode,isrepeat)
     if key=='lalt' then
         local x,y=love.mouse.getPosition()
         self.rotate_pivot=x
@@ -275,11 +282,16 @@ function sc:keypressed(key,scancode,isrepeat)
     end
 end
 function sc:keyreleased(key,scancode,isrepeat)
+    self.UI:keyreleased(key,scancode,isrepeat)
     if key=='lalt' then
         self.rotate_pivot=-1
     end
 end
 function sc:mousemoved(x,y,dx,dy)
+    self.UI:mousemoved(x,y,dx,dy)
+end
+function sc:_process_input(input_table)
+    
 end
 
 return sc

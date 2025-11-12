@@ -1,29 +1,34 @@
 local pttype=require('prototype')
+local Array=require('array')
 ---@class Node:prototype
 local Node=pttype{name='Node'}
-local Array=require('array')
 function Node:new(ops)
     self:merge(ops)
     self.children=Array()
-    self.to_draw=Array()
 end
 function Node:push(child,name)
     if name then
         assert(self.children[name] == nil, string.format("%s has been used",name))
         self.children[name]=child
-    else
-        self.children:push(child)
     end
-    if child.draw then
-        self.to_draw:push(child)
-    end
+    self.children:push(child)
+end
+function Node:update(...)
+    local args={...}
+    self.children:each(function (child,i,arr)
+        child:update(table.unpack(args))
+    end)
 end
 function Node:get(name)
     return self.children[name]
 end
 function Node:render()
     self:before_draw()
-    self:draw()
+    if self.draw then
+        self:draw()
+    else
+        self:draw_children()
+    end
     self:after_draw()
 end
 function Node:before_draw()
@@ -32,8 +37,8 @@ end
 function Node:after_draw()
     love.graphics.pop()
 end
-function Node:draw()
-    self.to_draw:each(function (child)
+function Node:draw_children()
+    self.children:each(function (child)
         if child.render then
             child:render()
         else

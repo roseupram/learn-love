@@ -1,5 +1,6 @@
 local prototype=require('prototype')
 ---@class Timer
+---@overload fun(...):Timer
 local timer=prototype{name='timer'}
 local Array=require("array")
 
@@ -19,7 +20,7 @@ function timer:interval(func,period)
     }
 end
 
----@param func fun(self:table,elapsed:number)
+---@param func fun(timer_info:table,elapsed:number)
 ---@param delay number|nil in milisecond, default 1000
 function timer:oneshot(func,delay)
     self:interval(function (...)

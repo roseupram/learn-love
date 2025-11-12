@@ -2,6 +2,7 @@ local Node=require('3d.node')
 local Face=require('3d.face')
 local Mesh=require('3d.mesh')
 local Point=require('3d.point')
+local Timer=require('timer')
 local Shader=require('shader')
 local lg=love.graphics
 ---@class Movable
@@ -25,8 +26,26 @@ function Movable:new(ops)
     end
     self.face=Face{points=points,normal=Point(0,0,1)}
     self:set_position(self.position)
+    self.timer=Timer()
+    self.Time=0
+    self.t0=-1
+end
+function Movable:update(dt)
+    self.Time=self.Time+dt
+    self.timer:update(dt)
+    local dt0=self.Time-self.t0
+    local release_time=.5
+    if self.t0>0 and dt0 >0 and dt0<release_time then
+        local p=dt0/release_time
+        self.mesh:color_tone{1,p,p}
+    end
 end
 function Movable:hurt(damage)
+    self.mesh:color_tone{1,0,0}
+    self.t0=self.Time+.2
+    -- self.timer:oneshot(function (timer_info, elapsed)
+    --     self.mesh:color_tone{1,1,1}
+    -- end,1)
     print('hurt '..damage)
 end
 function Movable:highlight()

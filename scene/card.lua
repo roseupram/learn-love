@@ -11,6 +11,7 @@ function Card:new(ops)
     self.size=ops.size or Vec(70,100)
     self.color=ops.color or Color(.5,.5,.5)
     self.damage=ops.damage or 6
+    self.cost=ops.cost or 1
     if self.range>0 then
         if self.name=='move' then
             self.description = string.format("%s\nR:%d", self.name,self.range)
@@ -49,7 +50,8 @@ function Card:include(tx,ty)
     return  x_left<tx and y_top<ty and x_left+w>tx and y_top+h>ty
 end
 function Card:mouse_in(x, y)
-    if not self.is_active then
+    if not self.is_active and self.state~="hover"then
+        self.state = "hover"
         self.last_pos = self.pos
         self.pos = self.pos + self.selected_move
     end
@@ -66,6 +68,7 @@ end
 function Card:mouse_out()
     if not self.is_active then
         self.pos = self.last_pos
+        self.state='normal'
     end
 end
 return Card

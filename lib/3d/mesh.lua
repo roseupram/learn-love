@@ -20,6 +20,9 @@ function Mesh_Group:new(ops)
     self.children=ops.meshes or {}
     self.position=Point()
 end
+function Mesh_Group:update()
+    
+end
 function Mesh_Group:draw()
     for i,child in ipairs(self.children) do
         child:draw()
@@ -487,6 +490,9 @@ function Mesh:draw()
         love.graphics.draw(self._mesh)
     end
     love.graphics.pop()
+end
+function Mesh:update()
+    
 end
 
 return Mesh
