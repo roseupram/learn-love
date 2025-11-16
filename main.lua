@@ -9,18 +9,21 @@ local function addpath(folder)
 end
 
 local root_scene
+local Event
 function love.draw()
     root_scene:render()
 end
 --- see https://www.love2d.org/wiki/love.run
 --- after update, call origin,clear,draw
 function love.update(dt)
+    Event.update(dt)
     root_scene:update(dt)
 end
 
 function love.load()
     addpath('lib')
     addpath('lib/std')
+    Event=require('event')
     local font =love.graphics.newFont(18)
     love.graphics.setFont(font)
     print('load')
@@ -32,32 +35,29 @@ function love.load()
     }
 end
 function love.resize(w,h)
-    root_scene:resize(w,h)
-    -- spire.content=rectsize(0,0,w,h)
+    Event.push('resize',{w=w,h=h})
 end
-function love.mousereleased(x,y,button,istouch,times)
-    root_scene:mousereleased(x,y,button,istouch,times)
+function love.mousereleased(x, y, button, istouch, times)
+    Event.push('mouse', { x = x, y = y, button = button, is_touch = istouch, times = times, release = true })
 end
-function love.mousemoved(x,y)
-    root_scene:mousemoved(x,y)
+
+function love.mousemoved(x, y)
+    Event.push('mouse', { x = x, y = y, move = true })
 end
-function love.mousepressed(x,y,button,istouch,times)
-    root_scene:mousepressed(x,y,button,istouch,times)
+
+function love.mousepressed(x, y, button, istouch, times)
+    Event.push('mouse', { x = x, y = y, button = button, is_touch = istouch, times = times, down = true })
 end
 function love.textinput(t)
     -- print(t)
 end
-function love.keyreleased(key,scancode)
-    root_scene:keyreleased(key,scancode)
+function love.keyreleased(key,scancode,isrepeat)
+    Event.push('keyboard',{key=key,scancode=scancode,is_repreat=isrepeat,release=true})
 end
 function love.keypressed(key,scancode,isrepeat)
-    -- print(key)
-    if key =='escape'then
-        love.event.quit(0)
-    end
-    root_scene:keypressed(key,scancode,isrepeat)
+    Event.push('keyboard',{key=key,scancode=scancode,is_repreat=isrepeat,down=true})
 end
 
 function love.wheelmoved(x,y)
-    root_scene:wheelmoved(x,y)
+    Event.push('mouse', { x = x, y = y, wheel = true })
 end

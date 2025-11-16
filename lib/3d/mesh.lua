@@ -436,7 +436,7 @@ local function resolve_index_data(index,data)
     end
     return index,data
 end
----@param index Point|table|number
+---@param index table|number
 ---@param p3d Point|table|nil
 function Mesh:set_position(index, p3d)
     index ,p3d=resolve_index_data(index,p3d)

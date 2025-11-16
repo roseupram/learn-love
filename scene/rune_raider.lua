@@ -1,5 +1,6 @@
 -- require('lldebugger').start()
 -- print(_VERSION)
+local Event=require('event')
 local Vec= require("vec")
 local Point = require("3d.point")
 local Shape = require("shape")
@@ -16,7 +17,7 @@ local Face=require('3d.face')
 local Navigate=require('3d.navigate')
 local Mat=require("3d.mat")
 local Movable=require('scene.movable')
-local UI=require('scene.UI')
+local UI=require('UI.hand_card')
 
 
 local my_shader
@@ -97,7 +98,7 @@ function sc:update(dt)
     end
     local win_size = Vec(love.graphics.getDimensions())
     mouse_pos=mouse_pos/win_size
-    local move_range=.03
+    local move_range=-.03
     dz=-FP.double_step(mouse_pos.y,move_range,1-move_range)
     dx=FP.double_step(mouse_pos.x,move_range,1-move_range)
     local cam = self.camera
@@ -142,7 +143,7 @@ function sc:update(dt)
             end
         end
     end
-    if self.release_clicked and self.used_card then
+    if self.mouse.release and self.used_card then
         local x,y=love.mouse.getPosition()
         local card=self.used_card
         if card.name=='move' then
@@ -162,7 +163,7 @@ function sc:update(dt)
         if self.used_card==nil then
             self.UI:play_card(self.used_card_i)
         end
-        self.release_clicked = nil
+        self.mouse.release=nil
     end
 
     if self.target_pos and self.velocity_P>0 then
@@ -179,7 +180,7 @@ function sc:new()
         cyan = Color(.1, .7, .9),
         green=Color(.2,.8,.2)
     }
-    self.UI=UI.Card()
+    self.UI=UI()
     local cards={
         {name='attack',color=plt.red,range=2},
         {name='move',color=plt.cyan,range=4},
@@ -190,17 +191,6 @@ function sc:new()
         {name='power',color=plt.green},
     }
     self.UI:add_cards(cards)
-    self.UI.on_card_used=function (ui_ref,card,card_i)
-        print(card and card.name or "nothing","used")
-        self.used_card=card
-        self.used_card_i=card_i
-        local range_cirlce=self:get('range_cirlce')
-        range_cirlce:set_scale{card.range,1,card.range}
-        range_cirlce:set_position(self.player:get_position()+Point(0,.05,0))
-        range_cirlce:show()
-        self.velocity_P=0
-        self.target_pos=nil
-    end
     self.UI.on_card_canceld=function (ui_ref,card)
         print(card and card.name or "nothing","cancel")
         self.used_card=nil
@@ -221,7 +211,7 @@ function sc:new()
         love.mouse.setGrabbed(true)
     end
     self:resize(w,h)
-    self.clicked=false
+    self.mouse={}
     self.target_pos=nil
     self.velocity_P=0
     local enemy=Movable{image=lg.newImage("images/enemy.png")}
@@ -250,15 +240,46 @@ function sc:new()
     polygon:color_tone{.2,.4,.4}
     polygon:set_position{0,-.1,0}
     self:push(polygon,'polygon')
-end
-function sc:mousepressed(x,y,button,is_touch,times)
-    local stop=self.UI:mousepressed(x,y,button,is_touch,times)
-    if stop then
-        return
-    end
-    if button==1 then
-        self.clicked=times
-    end
+    Event.bind('resize',function (e)
+        self:resize(e.w,e.h)
+    end)
+    Event.bind('mouse',function (e)
+        local button=e.button
+        if e.wheel then
+            self.camera:zoom(-e.y)
+        elseif e.release then
+            self.mouse.release=true
+            self.mouse.button=button
+        end
+    end)
+    Event.bind('select_card',function (e)
+        local card = e.card
+        print(card.name .. ' selected')
+        self.used_card = card
+        self.used_card_i = e.index
+        local range_cirlce = self:get('range_cirlce')
+        range_cirlce:set_scale { card.range, 1, card.range }
+        range_cirlce:set_position(self.player:get_position() + Point(0, .05, 0))
+        range_cirlce:show()
+        self.velocity_P = 0
+        self.target_pos = nil
+    end)
+    Event.bind('keyboard',function (e)
+        local key=e.key
+        if key=='escape' then
+            love.event.quit(0)
+        elseif key=='f5' then
+            love.event.quit('restart')
+        elseif key=='lalt' then
+            if e.down then
+                local x, y = love.mouse.getPosition()
+                self.rotate_pivot = x
+                self.y_base = self.camera.y_rot
+            elseif e.release then
+                self.rotate_pivot = -1
+            end
+        end
+    end)
 end
 function sc:mousereleased(x,y,button,is_touch,times)
     local stop=self.UI:mousereleased(x,y,button,is_touch,times)
@@ -268,30 +289,6 @@ function sc:mousereleased(x,y,button,is_touch,times)
 end
 function sc:resize(w,h)
     self.camera.wh_ratio=w/h
-    self.UI:resize(w,h)
-end
-function sc:wheelmoved(x,y)
-    self.camera:zoom(-y)
-end
-function sc:keypressed(key,scancode,isrepeat)
-    self.UI:keypressed(key,scancode,isrepeat)
-    if key=='lalt' then
-        local x,y=love.mouse.getPosition()
-        self.rotate_pivot=x
-        self.y_base=self.camera.y_rot
-    end
-end
-function sc:keyreleased(key,scancode,isrepeat)
-    self.UI:keyreleased(key,scancode,isrepeat)
-    if key=='lalt' then
-        self.rotate_pivot=-1
-    end
-end
-function sc:mousemoved(x,y,dx,dy)
-    self.UI:mousemoved(x,y,dx,dy)
-end
-function sc:_process_input(input_table)
-    
 end
 
 return sc
