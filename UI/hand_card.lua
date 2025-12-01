@@ -34,14 +34,9 @@ function Hand_card:new()
     Event.bind('keyboard',function (e)
         self:on_keyboard(e)
     end)
-    self.shortcut_table={
-        e=function (e)
-            if e.down then
-                print('end turn')
-            end
-        end
-    }
-
+    Event.bind('play_card',function (e)
+        self:play_card(e.index)
+    end)
     self:resize(lg.getDimensions())
 end
 
@@ -110,6 +105,7 @@ function Hand_card:deselect_card(i)
         local card = self.cards[i]
         card:deselected()
         self.selected_i=nil
+        Event.push('deselect_card',{card=card,index=i})
     end
 end
 function Hand_card:unhover_card(i)
@@ -186,16 +182,12 @@ function Hand_card:on_keyboard(e)
                 self:deselect_card(self.selected_i)
                 self:select_card(i)
                 self.mouse_block = false
-                if self.cards[i].name == 'power' then
+                if self.selected_i==i and self.cards[i].name == 'power' then
                     self:play_card(i)
                 end
             end
         end
         e.stop = true
-    end
-    local action=self.shortcut_table[key]
-    if action then
-        action(e)
     end
 
 end
@@ -209,8 +201,7 @@ function Hand_card:on_mouse(e)
         end
         if self.selected_i and button == 2 then
             local card = self.cards[self.selected_i]
-            card:deselected()
-            self.selected_i = nil
+            self:deselect_card(self.selected_i)
             e.stop = true
         end
     end

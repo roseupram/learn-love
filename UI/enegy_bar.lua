@@ -1,9 +1,14 @@
 local lg = love.graphics
+local Vec=require('vec')
 local Node=require('3d.node')
 
 local UI_Enegy= Node{name="UI_Enegy"}
 function UI_Enegy:new()
     self.enegy = { max = 3, remain = 3 }
+    self.layout={
+        pos=Vec(0,0),
+        radisu=10
+    }
 end
 function UI_Enegy:move(n)
     self.enegy.remain=self.enegy.remain+n
